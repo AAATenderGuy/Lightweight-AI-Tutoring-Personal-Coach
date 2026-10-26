@@ -1,0 +1,27 @@
+[Unit]
+Description=Edu AI Teaching Service
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=edu
+Group=edu
+WorkingDirectory=/opt/edu
+Environment=EDU_HOST=127.0.0.1
+Environment=EDU_PORT=8000
+Environment=EDU_OPEN_BROWSER=0
+Environment=EDU_DATA_DIR=/opt/edu/data
+# 可选：把模型配置放环境变量，避免写进 settings.json
+# Environment=EDU_BASE_URL=https://api.deepseek.com/v1
+# Environment=EDU_MODEL=deepseek-chat
+# Environment=EDU_API_KEY=sk-...
+ExecStart=/opt/edu/.venv/bin/python -m server.main --host 127.0.0.1 --port 8000 --no-browser
+Restart=always
+RestartSec=3
+# 日志走 journald：journalctl -u edu -f
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

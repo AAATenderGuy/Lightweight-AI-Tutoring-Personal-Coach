@@ -1,0 +1,48 @@
+# Edu Nginx 反向代理示例
+# 目标：HTTPS 终止、上传大小、SSE 不缓冲。
+# 用法：复制到 /etc/nginx/conf.d/edu.conf，替换域名与证书路径后 nginx -t && systemctl reload nginx
+
+upstream edu_backend {
+    server 127.0.0.1:8000;
+    keepalive 16;
+}
+
+server {
+    listen 80;
+    server_name edu.example.com;
+    # 申请证书时可先保留 80，Certbot 会自动改写；正式使用建议全站 301 到 https
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name edu.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/edu.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/edu.example.com/privkey.pem;
+
+    # 作业附件最大 20 MB，留一点余量
+    client_max_body_size 25m;
+
+    # SSE：关闭缓冲，延长超时，否则实时事件会被 Nginx 攒住
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 3600s;
+    proxy_send_timeout 3600s;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    location / {
+        proxy_pass http://edu_backend;
+    }
+
+    # 可选：静态资源长缓存（前端文件名带 hash）
+    location /assets/ {
+        proxy_pass http://edu_backend;
+        expires 7d;
+        add_header Cache-Control "public, immutable";
+    }
+}
