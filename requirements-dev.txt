@@ -1,0 +1,2 @@
+# Development / test dependencies（运行时不需要）。
+pytest>=8,<10
