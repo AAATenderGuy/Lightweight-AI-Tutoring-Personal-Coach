@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.py[cod]
+data/
+.env
+web/node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
