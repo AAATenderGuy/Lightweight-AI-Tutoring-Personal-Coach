@@ -1,0 +1,95 @@
+{
+  "id": "sb_as_d41ca46ee78a_st_c3ba9f596b91",
+  "assignment_id": "as_d41ca46ee78a",
+  "class_id": "cl_2b1a4d7f9475",
+  "student_id": "st_c3ba9f596b91",
+  "student_name": "程睿",
+  "score": 0.5,
+  "correct_count": 2,
+  "total": 4,
+  "results": [
+    {
+      "question_id": "q1",
+      "question": "设函数 f(x) 在 x=0 处连续，且 lim_{x→0} [x f(x) - e^{2sin x} + 1] / ln(1-x^2) = -3。则 f(x) 在 x=0 处（ ）",
+      "type": "single",
+      "options": [
+        "可导，且 f'(0) = -3",
+        "可导，且 f'(0) = 3",
+        "不可导，因为不知道 f(x) 是否可导",
+        "可导，但 f'(0) 的值无法确定"
+      ],
+      "knowledge_point": "凑导数定义",
+      "submitted": "2",
+      "correct_index": 0,
+      "correct_answer": "可导，且 f'(0) = -3",
+      "explanation": "由极限式凑导数定义可得 f'(0)=-3；连续且极限存在保证可导，并非不知道可导性。",
+      "score": 0.0,
+      "correct": false,
+      "feedback": "这个选项不对。先回到题干找出限制条件，再对照解析。",
+      "missing": []
+    },
+    {
+      "question_id": "q2",
+      "question": "设 y=f(x) 由方程 x = ∫_{y-x}^{1} sin^2(π t/4) dt 确定，则 lim_{n→∞} n[f(1/n)-1] = （ ）",
+      "type": "single",
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "knowledge_point": "隐函数求导",
+      "submitted": "1",
+      "correct_index": 2,
+      "correct_answer": "3",
+      "explanation": "极限化为 f'(0)；方程两边求导并代入 x=0,y=1 得 y'=3。",
+      "score": 0.0,
+      "correct": false,
+      "feedback": "这个选项不对。先回到题干找出限制条件，再对照解析。",
+      "missing": []
+    },
+    {
+      "question_id": "q3",
+      "question": "设 3 阶矩阵 A 的特征多项式为 |λE-A| = λ^3 + aλ^2 + bλ + c，且 |E-A|=1，|-E-A|=-1，|2E-A|=2，则 |3E-A| = （ ）",
+      "type": "single",
+      "options": [
+        "9",
+        "10",
+        "11",
+        "12"
+      ],
+      "knowledge_point": "特征多项式",
+      "submitted": "2",
+      "correct_index": 2,
+      "correct_answer": "11",
+      "explanation": "由条件解得特征多项式 λ^3-2λ^2+2，代入 λ=3 得 11。",
+      "score": 1.0,
+      "correct": true,
+      "feedback": "回答正确。",
+      "missing": []
+    },
+    {
+      "question_id": "q4",
+      "question": "若数列 {a_n} 收敛，且级数 ∑_{n=1}^∞ b_n 绝对收敛，则关于级数 ∑_{n=1}^∞ a_n b_n，下列说法正确的是（ ）",
+      "type": "single",
+      "options": [
+        "一定条件收敛",
+        "一定绝对收敛",
+        "一定发散",
+        "可能发散，取决于 {a_n} 的极限"
+      ],
+      "knowledge_point": "绝对收敛",
+      "submitted": "1",
+      "correct_index": 1,
+      "correct_answer": "一定绝对收敛",
+      "explanation": "收敛数列有界，|a_n b_n|≤M|b_n|，比较判别法得绝对收敛。",
+      "score": 1.0,
+      "correct": true,
+      "feedback": "回答正确。",
+      "missing": []
+    }
+  ],
+  "attempts": 1,
+  "submitted_at": 1792925801.3922665,
+  "created_at": 1792925801.3922665
+}

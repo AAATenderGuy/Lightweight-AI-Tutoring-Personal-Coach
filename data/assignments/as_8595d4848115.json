@@ -1,0 +1,16 @@
+{
+  "id": "as_8595d4848115",
+  "class_id": "cl_2b1a4d7f9475",
+  "teacher_id": "tc_494a80b8c3c3",
+  "title": "「不知道」随堂测验 · 薄弱点补练",
+  "kind": "homework",
+  "topic": "不知道",
+  "quiz_id": "qz_f156cf7aa9ff",
+  "question_count": 4,
+  "difficulty": "medium",
+  "instructions": "针对 凑导数定义、隐函数求导 的补练，题目难度与原作业一致。",
+  "due_at": 1794048960.0,
+  "reveal": true,
+  "closed": false,
+  "created_at": 1792925824.1611927
+}

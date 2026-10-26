@@ -1,0 +1,16 @@
+{
+  "id": "as_d41ca46ee78a",
+  "class_id": "cl_2b1a4d7f9475",
+  "teacher_id": "tc_494a80b8c3c3",
+  "title": "「不知道」随堂测验",
+  "kind": "quiz",
+  "topic": "不知道",
+  "quiz_id": "qz_32c3fd59edf4",
+  "question_count": 4,
+  "difficulty": "medium",
+  "instructions": "",
+  "due_at": 0.0,
+  "reveal": true,
+  "closed": false,
+  "created_at": 1792925778.5629451
+}

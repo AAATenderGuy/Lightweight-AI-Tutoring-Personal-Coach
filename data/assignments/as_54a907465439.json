@@ -1,0 +1,18 @@
+{
+  "id": "as_54a907465439",
+  "class_id": "cl_b264cef61239",
+  "teacher_id": "tc_494a80b8c3c3",
+  "title": "光合作用随堂测验",
+  "kind": "quiz",
+  "submission_mode": "quiz",
+  "topic": "光合作用是什么",
+  "quiz_id": "qz_b5d7cffaa211",
+  "question_count": 4,
+  "difficulty": "medium",
+  "instructions": "",
+  "rubric": "",
+  "due_at": 1793435460.0,
+  "reveal": true,
+  "closed": false,
+  "created_at": 1793003493.7180433
+}

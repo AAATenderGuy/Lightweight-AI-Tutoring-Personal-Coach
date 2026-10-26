@@ -1,0 +1,95 @@
+{
+  "id": "sb_as_8595d4848115_st_c3ba9f596b91",
+  "assignment_id": "as_8595d4848115",
+  "class_id": "cl_2b1a4d7f9475",
+  "student_id": "st_c3ba9f596b91",
+  "student_name": "程睿",
+  "score": 0.5,
+  "correct_count": 2,
+  "total": 4,
+  "results": [
+    {
+      "question_id": "q1",
+      "question": "设函数 f(x) 在 x=0 处连续，且 lim_{x→0} [f(x)cos x - e^{x^2} + 1] / ln(1+x^2) = 2，则 f(x) 在 x=0 处（ ）",
+      "type": "single",
+      "options": [
+        "可导且 f'(0)=4",
+        "可导且 f'(0)=2",
+        "不可导",
+        "连续但不可导"
+      ],
+      "knowledge_point": "凑导数定义",
+      "submitted": "2",
+      "correct_index": 0,
+      "correct_answer": "可导且 f'(0)=4",
+      "explanation": "由极限存在且分母~x^2，得 f(0)=1；凑导数定义得 f'(0)=4。误选B未正确处理e^{x^2}展开。",
+      "score": 0.0,
+      "correct": false,
+      "feedback": "这个选项不对。先回到题干找出限制条件，再对照解析。",
+      "missing": []
+    },
+    {
+      "question_id": "q2",
+      "question": "设 y=f(x) 由方程 x = ∫_{y-x}^{1} cos^2(π t/4) dt 确定，则 lim_{n→∞} n[f(1/n)-1] = （ ）",
+      "type": "single",
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "knowledge_point": "隐函数求导",
+      "submitted": "3",
+      "correct_index": 1,
+      "correct_answer": "2",
+      "explanation": "x=0时y=1；极限化为f'(0)。两边求导得1=cos^2(π(y-x)/4)(y'-1)，代入x=0,y=1得y'=2。",
+      "score": 0.0,
+      "correct": false,
+      "feedback": "这个选项不对。先回到题干找出限制条件，再对照解析。",
+      "missing": []
+    },
+    {
+      "question_id": "q3",
+      "question": "设 3 阶矩阵 A 的特征多项式为 |λE-A| = λ^3 + aλ^2 + bλ + c，且 |E-A|=2，|-E-A|=0，|2E-A|=-2，则 |3E-A| = （ ）",
+      "type": "single",
+      "options": [
+        "8",
+        "10",
+        "12",
+        "14"
+      ],
+      "knowledge_point": "特征多项式",
+      "submitted": "1",
+      "correct_index": 1,
+      "correct_answer": "10",
+      "explanation": "代入λ=1,-1,2得方程组解得a=-2,b=-1,c=4，特征多项式λ^3-2λ^2-λ+4，λ=3得10。",
+      "score": 1.0,
+      "correct": true,
+      "feedback": "回答正确。",
+      "missing": []
+    },
+    {
+      "question_id": "q4",
+      "question": "若数列 {a_n} 收敛，且级数 ∑_{n=1}^∞ b_n 条件收敛，则关于级数 ∑_{n=1}^∞ a_n b_n，下列说法正确的是（ ）",
+      "type": "single",
+      "options": [
+        "一定绝对收敛",
+        "一定条件收敛",
+        "一定发散",
+        "可能收敛也可能发散"
+      ],
+      "knowledge_point": "绝对收敛",
+      "submitted": "0",
+      "correct_index": 0,
+      "correct_answer": "一定绝对收敛",
+      "explanation": "收敛数列必有界，|a_n b_n|≤M|b_n|，而∑|b_n|发散，但需注意条件收敛时∑|b_n|发散，故不能直接比较；但a_n→0，且a_n有界，实际上∑a_n b_n绝对收敛需用Abel判别法？正确推理：a_n收敛故有界，但∑|b_n|发散，不能推出绝对收敛。反例：a_n=1/n, b_n=(-1)^n/√n，∑b_n条件收敛，∑a_n b_n=∑(-1)^n/n^{3/2}绝对收敛。但若a_n=1, b_n=(-1)^n/√n，∑a_n b_n条件收敛。故可能条件收敛，不一定绝对收敛。因此D正确。",
+      "score": 1.0,
+      "correct": true,
+      "feedback": "回答正确。",
+      "missing": []
+    }
+  ],
+  "attempts": 1,
+  "submitted_at": 1792925855.4151428,
+  "created_at": 1792925855.4151428
+}

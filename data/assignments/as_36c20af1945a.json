@@ -1,0 +1,16 @@
+{
+  "id": "as_36c20af1945a",
+  "class_id": "cl_a901b94a4f3e",
+  "teacher_id": "tc_494a80b8c3c3",
+  "title": "梅花易数随堂测验",
+  "kind": "quiz",
+  "topic": "梅花易数",
+  "quiz_id": "qz_8e7b2d0360bf",
+  "question_count": 4,
+  "difficulty": "medium",
+  "instructions": "不可查资料",
+  "due_at": 0.0,
+  "reveal": true,
+  "closed": false,
+  "created_at": 1792923270.7197242
+}

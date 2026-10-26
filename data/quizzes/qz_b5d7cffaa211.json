@@ -1,0 +1,66 @@
+{
+  "id": "qz_b5d7cffaa211",
+  "title": "光合作用随堂测验",
+  "topic": "光合作用是什么",
+  "difficulty": "medium",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "下列关于光合作用光反应阶段的叙述，正确的是哪一项？",
+      "explanation": "光反应产生的ATP和NADPH为暗反应提供能量和还原剂，用于C3还原。B项水光解产生O2和H+，NADPH由NADP+还原生成；C项光反应在类囊体薄膜上；D项CO2固定属于暗反应。",
+      "knowledge_point": "光反应与暗反应",
+      "type": "single",
+      "options": [
+        "光反应产生的ATP和NADPH用于暗反应中C3的还原",
+        "光反应中水的光解产生氧气和NADPH，同时生成ATP",
+        "光反应在叶绿体基质中进行，需要光能驱动",
+        "光反应中CO2被固定形成C3化合物"
+      ],
+      "answer_index": 0
+    },
+    {
+      "id": "q2",
+      "question": "在光合作用暗反应中，CO2首先与下列哪种物质结合？",
+      "explanation": "CO2与RuBP结合生成不稳定的C6中间产物，随即分解为两分子C3。PEP是C4途径的受体；C3是固定产物；NADPH是还原剂。",
+      "knowledge_point": "碳固定",
+      "type": "single",
+      "options": [
+        "RuBP（核酮糖-1,5-二磷酸）",
+        "PEP（磷酸烯醇式丙酮酸）",
+        "C3（3-磷酸甘油酸）",
+        "NADPH"
+      ],
+      "answer_index": 0
+    },
+    {
+      "id": "q3",
+      "question": "若突然停止光照，叶绿体中下列哪种物质含量会迅速下降？",
+      "explanation": "停止光照后光反应停止，ATP和NADPH不再生成，暗反应中C3还原受阻，C3积累、RuBP减少。氧气因光反应停止而减少，但ATP和NADPH下降最直接迅速。",
+      "knowledge_point": "光合作用的影响因素",
+      "type": "single",
+      "options": [
+        "ATP和NADPH",
+        "C3化合物",
+        "RuBP",
+        "氧气"
+      ],
+      "answer_index": 0
+    },
+    {
+      "id": "q4",
+      "question": "下列关于光合作用总反应式的叙述，正确的是哪一项？",
+      "explanation": "光合作用释放的O2来自水的光解，而非CO2。B、C项错误；D项光合作用与呼吸作用反应物和产物相反，并非完全相同。",
+      "knowledge_point": "光合作用总反应",
+      "type": "single",
+      "options": [
+        "CO2 + H2O → (CH2O) + O2，其中O2中的氧全部来自水",
+        "CO2 + H2O → (CH2O) + O2，其中O2中的氧全部来自CO2",
+        "光合作用释放的O2中的氧来自水和CO2各一半",
+        "光合作用的总反应式与呼吸作用的总反应式完全相同"
+      ],
+      "answer_index": 0
+    }
+  ],
+  "created_at": 1793003493.7170446,
+  "source": "generated"
+}

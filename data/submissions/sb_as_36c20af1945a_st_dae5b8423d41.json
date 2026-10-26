@@ -1,0 +1,95 @@
+{
+  "id": "sb_as_36c20af1945a_st_dae5b8423d41",
+  "assignment_id": "as_36c20af1945a",
+  "class_id": "cl_a901b94a4f3e",
+  "student_id": "st_dae5b8423d41",
+  "student_name": "程睿",
+  "score": 0.25,
+  "correct_count": 1,
+  "total": 4,
+  "results": [
+    {
+      "question_id": "q1",
+      "question": "在梅花易数中，起卦时若得到上卦为乾（1）、下卦为兑（2），动爻为第三爻，则本卦和变卦分别是？",
+      "type": "single",
+      "options": [
+        "本卦为天泽履，变卦为乾为天",
+        "本卦为天泽履，变卦为天泽履",
+        "本卦为泽天夬，变卦为兑为泽",
+        "本卦为天泽履，变卦为天火同人"
+      ],
+      "knowledge_point": "起卦与变卦",
+      "submitted": "2",
+      "correct_index": 0,
+      "correct_answer": "本卦为天泽履，变卦为乾为天",
+      "explanation": "乾上兑下为履卦，第三爻动则下卦兑变乾，故变卦为乾为天。",
+      "score": 0.0,
+      "correct": false,
+      "feedback": "这个选项不对。先回到题干找出限制条件，再对照解析。",
+      "missing": []
+    },
+    {
+      "question_id": "q2",
+      "question": "梅花易数中，体卦和用卦的确定原则是？",
+      "type": "single",
+      "options": [
+        "动爻所在的卦为用卦，另一卦为体卦",
+        "动爻所在的卦为体卦，另一卦为用卦",
+        "上卦恒为体卦，下卦恒为用卦",
+        "体卦和用卦由起卦时间决定"
+      ],
+      "knowledge_point": "体用关系",
+      "submitted": "3",
+      "correct_index": 0,
+      "correct_answer": "动爻所在的卦为用卦，另一卦为体卦",
+      "explanation": "动爻所在卦为用，代表事物变化；静卦为体，代表自身。",
+      "score": 0.0,
+      "correct": false,
+      "feedback": "这个选项不对。先回到题干找出限制条件，再对照解析。",
+      "missing": []
+    },
+    {
+      "question_id": "q3",
+      "question": "在梅花易数中，若体卦为离（火），用卦为坎（水），且用卦克体卦，通常初步判断为？",
+      "type": "single",
+      "options": [
+        "吉，因水克火为财",
+        "凶，因用克体主受制",
+        "吉，因水火既济",
+        "凶，因体生用为泄气"
+      ],
+      "knowledge_point": "体用生克",
+      "submitted": "3",
+      "correct_index": 1,
+      "correct_answer": "凶，因用克体主受制",
+      "explanation": "用克体表示外部压力或阻碍，多主不吉；体生用为泄气，非此情况。",
+      "score": 0.0,
+      "correct": false,
+      "feedback": "这个选项不对。先回到题干找出限制条件，再对照解析。",
+      "missing": []
+    },
+    {
+      "question_id": "q4",
+      "question": "梅花易数中，互卦的主要作用是什么？",
+      "type": "single",
+      "options": [
+        "表示事情的开端",
+        "表示事情的发展过程与中间状态",
+        "表示事情的最终结果",
+        "表示起卦时的外部环境"
+      ],
+      "knowledge_point": "互卦含义",
+      "submitted": "1",
+      "correct_index": 1,
+      "correct_answer": "表示事情的发展过程与中间状态",
+      "explanation": "互卦由本卦中间四爻组成，揭示事物发展过程中的内在状况。",
+      "score": 1.0,
+      "correct": true,
+      "feedback": "回答正确。",
+      "missing": []
+    }
+  ],
+  "attempts": 1,
+  "submitted_at": 1792923297.451834,
+  "created_at": 1792923297.451834
+}
