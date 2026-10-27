@@ -57,6 +57,13 @@ def _safe_text(value: object, limit: int) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip()[:limit]
 
 
+def _pick(row: list[str], index: int | None) -> str:
+    """按列序号取值；列不存在或该行短了都返回空串。"""
+    if index is None or index >= len(row):
+        return ""
+    return row[index]
+
+
 def _normalise(value: object) -> str:
     return re.sub(r"[\s_\-]+", "", str(value or "")).lower()
 
@@ -123,15 +130,9 @@ def parse_roster(text: str) -> dict:
     seen: dict[str, int] = {}
     duplicates = 0
     for line_number, row in enumerate(rows[start:], start + 1):
-        def pick(key: str) -> str:
-            index = mapping.get(key)
-            if index is None or index >= len(row):
-                return ""
-            return row[index]
-
-        number = _safe_text(pick("number"), 32)
-        name = _safe_text(pick("name"), 20)
-        password = str(pick("password")).strip()[:72]
+        number = _safe_text(_pick(row, mapping.get("number")), 32)
+        name = _safe_text(_pick(row, mapping.get("name")), 20)
+        password = _pick(row, mapping.get("password")).strip()[:72]
         if not number and not name:
             continue
         if not number:

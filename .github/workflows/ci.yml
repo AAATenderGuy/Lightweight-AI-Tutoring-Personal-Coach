@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: lint + test (Python 3.14)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: python -m ruff check .
+
+      - name: Test (pytest)
+        run: python -m pytest
+
+  docker:
+    name: docker build + smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      # 本机没有 Docker，镜像的可构建性与启动自检只能放在 CI 里验证。
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: edu:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke run
+        run: |
+          docker run -d --name edu -p 8000:8000 edu:ci
+          ok=0
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/api/health >/dev/null; then ok=1; break; fi
+            sleep 2
+          done
+          docker logs edu
+          docker rm -f edu >/dev/null
+          [ "$ok" = "1" ] || { echo "container never became healthy"; exit 1; }
+
+      - name: Frontend is served
+        run: |
+          docker run -d --name edu -p 8000:8000 edu:ci
+          for _ in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/api/health >/dev/null && break
+            sleep 2
+          done
+          curl -fsS http://127.0.0.1:8000/ | grep -q '<div id="app">'
+          docker rm -f edu >/dev/null

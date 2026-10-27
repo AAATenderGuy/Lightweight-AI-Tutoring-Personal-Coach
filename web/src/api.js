@@ -176,6 +176,14 @@ export const api = {
     },
     remove: (id) => request(`/api/materials/${id}`, { method: 'DELETE' }),
   },
+  ocr: {
+    status: () => request('/api/ocr/status'),
+    extract: (file) => {
+      const form = new FormData()
+      form.append('file', file)
+      return request('/api/ocr/extract', { method: 'POST', body: form, form: true })
+    },
+  },
   lessons: {
     list: () => request('/api/classroom/lessons'),
     get: (id) => request(`/api/classroom/lessons/${id}`),
@@ -233,6 +241,21 @@ export const api = {
       exportCsv: (id) => downloadFile(`/api/teacher/assignments/${id}/export.csv`, '作业明细.csv'),
     },
     studentReport: (studentId) => downloadFile(`/api/teacher/students/${studentId}/report.html`, '学习报告.html'),
+    groups: {
+      list: () => request('/api/teacher/groups'),
+      create: (payload) => request('/api/teacher/groups', { method: 'POST', body: payload }),
+      update: (id, payload) => request(`/api/teacher/groups/${id}`, { method: 'PATCH', body: payload }),
+      remove: (id) => request(`/api/teacher/groups/${id}`, { method: 'DELETE' }),
+      addMember: (id, username) => request(`/api/teacher/groups/${id}/members`, {
+        method: 'POST', body: { username },
+      }),
+      removeMember: (id, teacherId) => request(`/api/teacher/groups/${id}/members/${teacherId}`, {
+        method: 'DELETE',
+      }),
+    },
+    audit: {
+      list: (limit = 100) => request(`/api/teacher/audit?limit=${encodeURIComponent(limit)}`),
+    },
     submissions: {
       get: (id) => request(`/api/teacher/submissions/${id}`),
       grade: (id, payload) => request(`/api/teacher/submissions/${id}`, { method: 'PATCH', body: payload }),

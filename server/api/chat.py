@@ -32,6 +32,8 @@ async def chat_stream(payload: ChatRequest):
                     "index": index,
                     "title": source.get("title", ""),
                     "material_id": source.get("material_id", ""),
+                    "chunk_id": source.get("chunk_id", ""),
+                    "chunk_index": source.get("chunk_index", 0),
                     "preview": rag.preview(source.get("text", ""), 180),
                 }
                 for index, source in enumerate(sources, 1)

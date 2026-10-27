@@ -1,4 +1,8 @@
-"""轻量检索：文本分块 + BM25，不依赖向量库和外部模型。"""
+"""轻量检索：文本分块 / 分词 / BM25 基线，检索选路见 `services/retrieval.py`。
+
+分块按 bge 的 512 token 上限定在 450 字左右：块再大，向量那一路会被截断，
+混合检索就失去意义。
+"""
 from __future__ import annotations
 
 import math
@@ -26,7 +30,7 @@ def split_sentences(text: str) -> list[str]:
     return [p for p in parts if p]
 
 
-def chunk_text(text: str, size: int = 700, overlap: int = 120) -> list[str]:
+def chunk_text(text: str, size: int = 450, overlap: int = 100) -> list[str]:
     text = re.sub(r"\r\n?", "\n", text).strip()
     if not text:
         return []
@@ -94,43 +98,16 @@ def _materials(material_ids: list[str] | None) -> list[dict]:
 
 
 def search(query: str, material_ids: list[str] | None = None, top_k: int = 4) -> list[dict]:
-    """返回与 query 最相关的资料片段（含来源信息）。"""
+    """返回与 query 最相关的资料片段（含来源信息）。
+
+    签名保持不变，内部按 `EDU_RETRIEVAL_MODE`（bm25 / dense / hybrid / hybrid_rerank）
+    委派给 `services/retrieval`；延迟导入避免模块级循环。
+    """
     if not query.strip():
         return []
-    materials = _materials(material_ids)
-    docs: list[tuple[dict, dict, list[str]]] = []
-    for material in materials:
-        for chunk in material.get("chunks", []) or []:
-            text = chunk.get("text", "")
-            docs.append((material, chunk, tokenize(text)))
-    if not docs:
-        return []
+    from .services import retrieval
 
-    query_tokens = tokenize(query)[:64]
-    if not query_tokens:
-        return []
-
-    index = _BM25([d[2] for d in docs])
-    scored = [(index.score(query_tokens, d[2]), d) for d in docs]
-    scored = [pair for pair in scored if pair[0] > 0]
-    if not scored:
-        return []
-    scored.sort(key=lambda pair: pair[0], reverse=True)
-    best = scored[0][0]
-    results = []
-    for score, (material, chunk, _tokens) in scored:
-        if score < best * 0.15:
-            break
-        results.append({
-            "material_id": material.get("id"),
-            "title": material.get("title") or "未命名资料",
-            "chunk_id": chunk.get("id"),
-            "text": chunk.get("text", ""),
-            "score": round(score, 3),
-        })
-        if len(results) >= top_k:
-            break
-    return results
+    return retrieval.search(query, material_ids, top_k)
 
 
 def preview(text: str, limit: int = 180) -> str:

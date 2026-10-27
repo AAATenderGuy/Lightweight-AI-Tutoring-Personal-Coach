@@ -14,11 +14,9 @@ from statistics import mean
 
 from .. import store
 from . import grading as grading_service
-from . import identity
+from . import identity, perms, reports, uploads
 from . import quiz as quiz_service
-from . import reports
 from . import roster as roster_service
-from . import uploads
 from .events import bus
 
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -67,9 +65,26 @@ def _classes_of(teacher_id: str) -> list[dict]:
     return items
 
 
-def _own_class(teacher_id: str, class_id: str) -> dict:
+def _visible_classes(teacher_id: str) -> list[dict]:
+    """自己创建的 + 同组（含被邀请进的组）里别人创建的，后者标记只读。"""
+    teacher = store.load_item("teachers", teacher_id) or {"id": teacher_id}
+    own = _classes_of(teacher_id)
+    own_ids = {item["id"] for item in own}
+    shared = [
+        item for item in store.list_items("classes")
+        if item["id"] not in own_ids and perms.can_view_class(teacher, item)
+    ]
+    shared.sort(key=lambda item: (bool(item.get("archived")), -float(item.get("created_at") or 0)))
+    return own + shared
+
+
+def _own_class(teacher_id: str, class_id: str, *, write: bool = True) -> dict:
     klass = store.load_item("classes", class_id)
-    if not klass or klass.get("teacher_id") != teacher_id:
+    if not klass:
+        raise ValueError("班级不存在，或不属于当前账号。")
+    teacher = store.load_item("teachers", teacher_id) or {"id": teacher_id}
+    allowed = perms.can_edit_class(teacher, klass) if write else perms.can_view_class(teacher, klass)
+    if not allowed:
         raise ValueError("班级不存在，或不属于当前账号。")
     return klass
 
@@ -169,7 +184,7 @@ def _student_public(student: dict) -> dict:
 def list_classes(teacher_id: str) -> list[dict]:
     all_submissions = store.list_items("submissions")
     result = []
-    for klass in _classes_of(teacher_id):
+    for klass in _visible_classes(teacher_id):
         students = _students_of(klass["id"])
         assignments = _assignments_of(klass["id"])
         ids = {item["id"] for item in assignments}
@@ -183,6 +198,8 @@ def list_classes(teacher_id: str) -> list[dict]:
             "code": klass.get("code"),
             "archived": bool(klass.get("archived")),
             "created_at": klass.get("created_at"),
+            "group_id": klass.get("group_id") or "",
+            "readonly": klass.get("teacher_id") != teacher_id,
             "student_count": len(students),
             "assignment_count": len(assignments),
             "open_count": len([item for item in assignments if _due_state(item) == "open"]),
@@ -192,7 +209,8 @@ def list_classes(teacher_id: str) -> list[dict]:
     return result
 
 
-def create_class(teacher_id: str, *, name: str, subject: str = "", grade: str = "") -> dict:
+def create_class(teacher_id: str, *, name: str, subject: str = "", grade: str = "",
+                 group_id: str = "") -> dict:
     name = _text(name, 40)
     if not name:
         raise ValueError("班级名称不能为空。")
@@ -203,14 +221,29 @@ def create_class(teacher_id: str, *, name: str, subject: str = "", grade: str = 
         "subject": _text(subject, 40),
         "grade": _text(grade, 40),
         "code": _new_code(),
+        "group_id": _valid_group(teacher_id, group_id),
         "archived": False,
         "created_at": time.time(),
     })
     bus.publish(f"teacher:{teacher_id}", "class_changed", class_id=klass["id"])
-    return _class_public(klass)
+    return _class_public(klass, teacher_id)
 
 
-def _class_public(klass: dict) -> dict:
+def _valid_group(teacher_id: str, group_id: str) -> str:
+    """班级只能挂到自己所在的组；空字符串表示不挂组。"""
+    group_id = (group_id or "").strip()
+    if not group_id:
+        return ""
+    group = store.load_item("groups", group_id)
+    if not group:
+        raise ValueError("教研组不存在。")
+    teacher = store.load_item("teachers", teacher_id) or {"id": teacher_id}
+    if group_id not in perms.group_ids_of(teacher_id) and perms.role_of(teacher) != "owner":
+        raise ValueError("只能把班级挂到自己所在的教研组。")
+    return group_id
+
+
+def _class_public(klass: dict, teacher_id: str = "") -> dict:
     students = _students_of(klass["id"])
     assignments = _assignments_of(klass["id"])
     return {
@@ -221,6 +254,8 @@ def _class_public(klass: dict) -> dict:
         "code": klass.get("code"),
         "archived": bool(klass.get("archived")),
         "created_at": klass.get("created_at"),
+        "group_id": klass.get("group_id") or "",
+        "readonly": bool(teacher_id) and klass.get("teacher_id") != teacher_id,
         "student_count": len(students),
         "assignment_count": len(assignments),
     }
@@ -228,7 +263,7 @@ def _class_public(klass: dict) -> dict:
 
 def update_class(teacher_id: str, class_id: str, *, name: str | None = None,
                  subject: str | None = None, grade: str | None = None,
-                 archived: bool | None = None) -> dict:
+                 archived: bool | None = None, group_id: str | None = None) -> dict:
     klass = _own_class(teacher_id, class_id)
     if name is not None and name.strip():
         klass["name"] = _text(name, 40)
@@ -238,9 +273,11 @@ def update_class(teacher_id: str, class_id: str, *, name: str | None = None,
         klass["grade"] = _text(grade, 40)
     if archived is not None:
         klass["archived"] = bool(archived)
+    if group_id is not None:
+        klass["group_id"] = _valid_group(teacher_id, group_id)
     store.save_item("classes", klass)
     bus.publish(f"teacher:{teacher_id}", "class_changed", class_id=klass["id"])
-    return _class_public(klass)
+    return _class_public(klass, teacher_id)
 
 
 def regenerate_code(teacher_id: str, class_id: str) -> dict:
@@ -268,7 +305,7 @@ def delete_class(teacher_id: str, class_id: str) -> dict:
 
 
 def class_detail(teacher_id: str, class_id: str) -> dict:
-    klass = _own_class(teacher_id, class_id)
+    klass = _own_class(teacher_id, class_id, write=False)
     students = _students_of(class_id)
     assignments = _assignments_of(class_id)
     all_submissions = store.list_items("submissions")
@@ -297,7 +334,7 @@ def class_detail(teacher_id: str, class_id: str) -> dict:
 
     all_scores = [score for scores in per_student.values() for score in scores]
     return {
-        "class": _class_public(klass),
+        "class": _class_public(klass, teacher_id),
         "students": student_items,
         "assignments": assignment_items,
         "stats": {
@@ -541,7 +578,7 @@ def reset_student_password(teacher_id: str, class_id: str, student_id: str, pass
 
 
 def roster_csv(teacher_id: str, class_id: str) -> tuple[str, bytes]:
-    klass = _own_class(teacher_id, class_id)
+    klass = _own_class(teacher_id, class_id, write=False)
     students = _students_of(class_id)
     rows = [["学号", "姓名", "密码状态", "最后登录"]]
     for student in students:
@@ -558,11 +595,11 @@ def roster_csv(teacher_id: str, class_id: str) -> tuple[str, bytes]:
 
 # ---------------------------------------------------------------- 作业
 def list_assignments(teacher_id: str, class_id: str = "") -> list[dict]:
-    class_map = {item["id"]: item for item in _classes_of(teacher_id)}
+    class_map = {item["id"]: item for item in _visible_classes(teacher_id)}
     all_submissions = store.list_items("submissions")
     items = []
     for assignment in store.list_items("assignments"):
-        if assignment.get("teacher_id") != teacher_id:
+        if assignment.get("class_id") not in class_map:
             continue
         if class_id and assignment.get("class_id") != class_id:
             continue
@@ -672,9 +709,11 @@ def delete_assignment(teacher_id: str, assignment_id: str) -> dict:
 
 def assignment_detail(teacher_id: str, assignment_id: str) -> dict:
     assignment = store.load_item("assignments", assignment_id)
-    if not assignment or assignment.get("teacher_id") != teacher_id:
+    if not assignment:
         raise ValueError("作业不存在。")
-    klass = store.load_item("classes", assignment["class_id"]) or {}
+    klass = _own_class(teacher_id, assignment.get("class_id") or "", write=False)
+    if not klass:
+        raise ValueError("作业不存在。")
     students = _students_of(assignment["class_id"])
     submissions = _submissions_of(assignment_id)
     by_student = {str(item.get("student_id")): item for item in submissions}
@@ -1065,7 +1104,11 @@ def _teacher_submission(teacher_id: str, submission_id: str) -> tuple[dict, dict
     if not submission:
         raise ValueError("提交记录不存在。")
     assignment = store.load_item("assignments", submission.get("assignment_id") or "")
-    if not assignment or assignment.get("teacher_id") != teacher_id:
+    if not assignment:
+        raise ValueError("提交记录不存在，或不属于当前账号。")
+    klass = store.load_item("classes", assignment.get("class_id") or "")
+    teacher = store.load_item("teachers", teacher_id) or {"id": teacher_id}
+    if not klass or not perms.can_view_grades(teacher, klass):
         raise ValueError("提交记录不存在，或不属于当前账号。")
     return submission, assignment
 
@@ -1266,7 +1309,7 @@ def overview(teacher_id: str) -> dict:
 
 # ---------------------------------------------------------------- 导出
 def class_csv(teacher_id: str, class_id: str) -> tuple[str, bytes]:
-    klass = _own_class(teacher_id, class_id)
+    klass = _own_class(teacher_id, class_id, write=False)
     students = _students_of(class_id)
     assignments = _assignments_of(class_id)
     submissions = [item for item in store.list_items("submissions") if item.get("class_id") == class_id]
@@ -1275,7 +1318,7 @@ def class_csv(teacher_id: str, class_id: str) -> tuple[str, bytes]:
 
 def class_report(teacher_id: str, class_id: str) -> tuple[str, str]:
     """整班成绩报告（HTML，含统计图表）。"""
-    klass = _own_class(teacher_id, class_id)
+    klass = _own_class(teacher_id, class_id, write=False)
     teacher = store.load_item("teachers", teacher_id) or {}
     students = _students_of(class_id)
     assignments = _assignments_of(class_id)
@@ -1291,9 +1334,9 @@ def class_report(teacher_id: str, class_id: str) -> tuple[str, str]:
 
 def assignment_csv(teacher_id: str, assignment_id: str) -> tuple[str, bytes]:
     assignment = store.load_item("assignments", assignment_id)
-    if not assignment or assignment.get("teacher_id") != teacher_id:
+    if not assignment:
         raise ValueError("作业不存在。")
-    klass = store.load_item("classes", assignment["class_id"]) or {}
+    klass = _own_class(teacher_id, assignment.get("class_id") or "", write=False)
     students = _students_of(assignment["class_id"])
     submissions = _submissions_of(assignment_id)
     quiz = _load_quiz(assignment)
@@ -1307,7 +1350,7 @@ def student_report(teacher_id: str, student_id: str) -> tuple[str, str]:
     student = store.load_item("students", student_id)
     if not student:
         raise ValueError("学生不存在。")
-    klass = _own_class(teacher_id, student.get("class_id") or "")
+    klass = _own_class(teacher_id, student.get("class_id") or "", write=False)
     teacher = store.load_item("teachers", teacher_id) or {}
     assignments = _assignments_of(klass["id"])
     submissions = [

@@ -1,0 +1,47 @@
+name: edu
+
+services:
+  edu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: edu:1.5.0
+    container_name: edu
+    ports:
+      - "${EDU_PORT:-8000}:8000"
+    environment:
+      EDU_HOST: 0.0.0.0
+      EDU_PORT: 8000
+      EDU_OPEN_BROWSER: "0"
+      EDU_LOG_LEVEL: "${EDU_LOG_LEVEL:-INFO}"
+      # 大模型配置：留空则进入演示模式（不调用外部接口）。
+      # 也可以启动后在界面「设置」里填，配置会写进 data/settings.json 并持久化。
+      EDU_BASE_URL: "${EDU_BASE_URL:-}"
+      EDU_MODEL: "${EDU_MODEL:-}"
+      EDU_API_KEY: "${EDU_API_KEY:-}"
+    volumes:
+      # 命名卷而不是 ./data 绑定挂载：容器的 edu 用户（uid 10001）对宿主机目录
+      # 通常没有写权限，绑定挂载会直接启动失败。要导出数据用下面「备份」命令。
+      - edu-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import os,sys,urllib.request; p=os.environ.get('EDU_PORT','8000'); sys.exit(0 if urllib.request.urlopen(f'http://127.0.0.1:{p}/api/health',timeout=2).status==200 else 1)
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+
+volumes:
+  edu-data:
+    name: edu-data
+
+# 常用命令：
+#   docker compose up -d --build        启动
+#   docker compose logs -f edu          看日志
+#   docker compose down                 停止（数据保留在 edu-data 卷里）
+#   docker run --rm -v edu-data:/v -v "$PWD":/out alpine tar czf /out/edu-data.tgz -C /v .
+#                                       把数据卷备份成 ./edu-data.tgz

@@ -11,11 +11,19 @@ from ..llm import LLMError, llm
 from ..schemas import DiscussRequest, GroupAgentsPayload, GroupDiscussRequest, LessonRequest
 from ..services import (
     agents as agent_service,
+)
+from ..services import (
     discussion,
     export_pptx,
-    group as group_service,
-    lesson as lesson_service,
     mastery,
+)
+from ..services import (
+    group as group_service,
+)
+from ..services import (
+    lesson as lesson_service,
+)
+from ..services import (
     quiz as quiz_service,
 )
 from .limits import rate_limit

@@ -37,7 +37,7 @@ def _secret() -> bytes:
 
 
 def student_token(student_id: str) -> str:
-    message = f"student:{student_id}".encode("utf-8")
+    message = f"student:{student_id}".encode()
     return hmac.new(_secret(), message, hashlib.sha256).hexdigest()[:40]
 
 

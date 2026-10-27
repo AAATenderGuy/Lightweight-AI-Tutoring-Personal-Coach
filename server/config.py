@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import threading
 from pathlib import Path
@@ -39,10 +40,23 @@ def _load_dotenv(path: Path) -> None:
 
 _load_dotenv(ROOT / ".env")
 
+# 可观测性：日志落盘位置与级别。放在 .env 之后读取，保证 .env 里的设置能生效。
+# 数据目录可被 EDU_DATA_DIR 重定向（测试用临时目录），日志跟着一起走，
+# 避免测试过程污染真实 data/logs。
+LOG_DIR = Path(os.environ.get("EDU_LOG_DIR") or DATA_DIR / "logs").expanduser().resolve()
+LOG_LEVEL = getattr(logging, os.environ.get("EDU_LOG_LEVEL", "INFO").upper(), logging.INFO)
+LOG_SLOW_MS = float(os.environ.get("EDU_SLOW_MS", "1000"))  # 超过这个耗时的请求打 WARNING
+
+
+def _env(name: str, default: str) -> str:
+    """读环境变量；空字符串视同未设置（compose 里常会传空值）。"""
+    return (os.environ.get(name) or default).strip()
+
+
 DEFAULTS = {
-    "base_url": os.environ.get("EDU_BASE_URL", "https://api.deepseek.com/v1").strip(),
-    "model": os.environ.get("EDU_MODEL", "deepseek-chat").strip(),
-    "api_key": os.environ.get("EDU_API_KEY", "").strip(),
+    "base_url": _env("EDU_BASE_URL", "https://api.deepseek.com/v1"),
+    "model": _env("EDU_MODEL", "deepseek-chat"),
+    "api_key": _env("EDU_API_KEY", ""),
     "temperature": 0.6,
 }
 

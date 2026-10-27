@@ -36,7 +36,7 @@ def normalise_lesson(raw: dict, *, topic: str, level: str = "beginner") -> dict:
         raise LLMError("课堂结构为空，请重试。")
 
     scenes: list[dict] = []
-    for index, item in enumerate(scenes_in):
+    for item in scenes_in:
         if not isinstance(item, dict):
             continue
         scene_type = str(item.get("type") or "content").strip().lower()

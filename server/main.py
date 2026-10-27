@@ -7,7 +7,6 @@ import socket
 import sys
 import threading
 import webbrowser
-
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -17,8 +16,12 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .api import api_router
-from .config import APP_NAME, APP_SUBTITLE, DATA_DIR, VERSION, WEB_DIST
+from .config import APP_NAME, APP_SUBTITLE, DATA_DIR, ROOT, VERSION, WEB_DIST
 from .llm import LLMError
+from .observability import AccessLog, logger, setup_logging
+
+setup_logging()
+log = logger("edu.main")
 
 PLACEHOLDER = """<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"/>
@@ -42,9 +45,11 @@ npm run build</pre>
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    log.info("starting %s v%s data_dir=%s", APP_NAME, VERSION, DATA_DIR)
     print(f"\n  {APP_NAME} · {APP_SUBTITLE}  v{VERSION}")
     print(f"  数据目录：{DATA_DIR}")
     yield
+    log.info("stopped %s v%s", APP_NAME, VERSION)
 
 
 app = FastAPI(title=f"{APP_NAME} API", version=VERSION, lifespan=lifespan, docs_url="/api/docs", openapi_url="/api/openapi.json")
@@ -56,11 +61,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(api_router)
+# 注意顺序：后加的中间件先执行，所以 AccessLog 放在 CORS 之后注册，
+# 让 CORS 仍然最先给响应加上跨域头。
+app.add_middleware(AccessLog)
 
 
 @app.exception_handler(LLMError)
 async def handle_llm_error(_request: Request, exc: LLMError) -> JSONResponse:
     return JSONResponse({"detail": str(exc)}, status_code=502)
+
+
+@app.get("/eval", response_class=HTMLResponse, include_in_schema=False)
+async def eval_report() -> str:
+    """检索评测报告：`scripts/eval_retrieval.py` 跑完会覆盖 data/eval/latest.html。"""
+    for path in (DATA_DIR / "eval" / "latest.html", ROOT / "data" / "eval" / "latest.html"):
+        if path.is_file():
+            return path.read_text(encoding="utf-8", errors="ignore")
+    return (
+        "<!doctype html><meta charset='utf-8'><title>检索评测</title>"
+        "<body style=\"font:16px/1.8 system-ui,'Microsoft YaHei',sans-serif;max-width:720px;margin:60px auto\">"
+        "<h1>检索评测报告</h1>"
+        "<p>还没有跑过评测。在仓库根目录执行 <code>python scripts/eval_retrieval.py</code>，"
+        "完成后刷新本页即可看到 BM25 / 混合检索 / 重排的 ablation 表。</p></body>"
+    )
 
 
 def _mount_frontend() -> None:
@@ -125,9 +148,10 @@ def main() -> None:
     print(f"\n  ➜ 打开浏览器访问：{url}\n")
 
     if args.reload:
-        uvicorn.run("server.main:app", host=args.host, port=port, reload=True, reload_dirs=["server"])
+        uvicorn.run("server.main:app", host=args.host, port=port, reload=True, reload_dirs=["server"],
+                    access_log=False)
     else:
-        uvicorn.run(app, host=args.host, port=port, log_level="info")
+        uvicorn.run(app, host=args.host, port=port, log_level="info", access_log=False)
 
 
 if __name__ == "__main__":

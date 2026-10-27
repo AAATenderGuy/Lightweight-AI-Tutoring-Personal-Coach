@@ -1,0 +1,18 @@
+# 构建上下文尽量小：只保留 Dockerfile 真正需要的源码。
+.git
+.github
+.ruff_cache
+.pytest_cache
+__pycache__
+*.py[cod]
+.venv
+docs
+tests
+samples
+scripts
+node_modules
+web/node_modules
+web/dist
+data
+.env
+*.log

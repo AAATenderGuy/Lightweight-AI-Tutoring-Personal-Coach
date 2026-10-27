@@ -355,14 +355,11 @@ def html_student_report(*, student: dict, klass: dict, teacher_name: str,
 
     summary = (
         '  <h2>总体表现</h2>\n  <div class="grid">\n'
-        '    <div class="card"><div class="v">{completion}</div><div class="k">作业完成率（{done}/{total}）</div></div>\n'
-        '    <div class="card"><div class="v">{avg}</div><div class="k">平均得分</div></div>\n'
-        '    <div class="card"><div class="v">{best}</div><div class="k">单次最高</div></div>\n'
-        '    <div class="card"><div class="v">{points}</div><div class="k">涉及知识点</div></div>\n'
+        f'    <div class="card"><div class="v">{_pct(completion)}</div><div class="k">作业完成率（{len(submissions)}/{len(assignments)}）</div></div>\n'
+        f'    <div class="card"><div class="v">{_pct(avg)}</div><div class="k">平均得分</div></div>\n'
+        f'    <div class="card"><div class="v">{_pct(best)}</div><div class="k">单次最高</div></div>\n'
+        f'    <div class="card"><div class="v">{len(point_rows)}</div><div class="k">涉及知识点</div></div>\n'
         "  </div>\n\n"
-    ).format(
-        completion=_pct(completion), done=len(submissions), total=len(assignments),
-        avg=_pct(avg), best=_pct(best), points=len(point_rows),
     )
 
     tail = (
@@ -646,18 +643,14 @@ def html_class_report(*, klass: dict, teacher_name: str, students: list[dict],
     head = (
         "<!doctype html>\n<html lang=\"zh-CN\"><head><meta charset=\"utf-8\"/>\n"
         '<meta name="viewport" content="width=device-width, initial-scale=1"/>\n'
-        "<title>{name} · 成绩报告</title>\n<style>{css}</style></head>\n<body><div class=\"wrap\">\n"
+        f"<title>{_e(class_name)} · 成绩报告</title>\n<style>{REPORT_CSS + CLASS_EXTRA_CSS}</style></head>\n<body><div class=\"wrap\">\n"
         '  <div class="top">\n    <div>\n'
         '      <div class="brand">Edu · 轻量级 AI 教学系统</div>\n'
-        "      <h1>{name} 成绩报告</h1>\n"
-        '      <div class="sub">{meta}</div>\n'
+        f"      <h1>{_e(class_name)} 成绩报告</h1>\n"
+        f'      <div class="sub">{_e(meta_text)}</div>\n'
         "    </div>\n"
-        '    <div class="meta">生成时间<br/>{generated}<br/>数据来源：班级作业记录</div>\n'
+        f'    <div class="meta">生成时间<br/>{generated}<br/>数据来源：班级作业记录</div>\n'
         "  </div>\n\n"
-    ).format(
-        name=_e(class_name), css=REPORT_CSS + CLASS_EXTRA_CSS,
-        meta=_e(meta_text),
-        generated=generated,
     )
 
     # ---- 指标卡
@@ -743,11 +736,11 @@ def html_class_report(*, klass: dict, teacher_name: str, students: list[dict],
         )
         idle = len(student_rows) - len(ranked)
         rank_note = (
-            '<p class="sec-note">共 {n} 名学生有提交记录；'
-            "另有 {idle} 人尚未提交任何作业，未参与排名。</p>"
-        ).format(n=len(ranked), idle=idle) if idle else (
-            '<p class="sec-note">共 {n} 名学生，按平均得分从高到低排列。</p>'
-        ).format(n=len(ranked))
+            f'<p class="sec-note">共 {len(ranked)} 名学生有提交记录；'
+            f"另有 {idle} 人尚未提交任何作业，未参与排名。</p>"
+        ) if idle else (
+            f'<p class="sec-note">共 {len(ranked)} 名学生，按平均得分从高到低排列。</p>'
+        )
     else:
         rank_html = '<div class="empty">还没有学生提交作业。</div>'
         rank_note = ""
@@ -806,10 +799,8 @@ def html_class_report(*, klass: dict, teacher_name: str, students: list[dict],
     notes = []
     if total_slots and submit_rate < 0.8:
         notes.append(
-            "提交率 {rate}，有 {missing} 人次未交。建议先在课堂上提醒补交，"
-            "未交的作业会让统计失真。".format(
-                rate=_pct(submit_rate), missing=total_slots - len(submissions),
-            )
+            f"提交率 {_pct(submit_rate)}，有 {total_slots - len(submissions)} 人次未交。建议先在课堂上提醒补交，"
+            "未交的作业会让统计失真。"
         )
     if weak_points:
         notes.append("错误率最高的知识点是「{name}」（{rate}），可作为下一节课的复习重点。".format(

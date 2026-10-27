@@ -8,6 +8,7 @@ import TeacherLogin from '../components/TeacherLogin.vue'
 import AssignmentDialog from '../components/AssignmentDialog.vue'
 import AssignmentDetail from '../components/AssignmentDetail.vue'
 import RosterDialog from '../components/RosterDialog.vue'
+import GroupDialog from '../components/GroupDialog.vue'
 
 const tabs = [
   { id: 'overview', label: '概览' },
@@ -22,6 +23,8 @@ const teacher = computed(() => state.teacher.profile)
 
 const overview = ref(null)
 const classes = ref([])
+const groups = ref([])
+const groupsOpen = ref(false)
 const assignments = ref([])
 const selectedClassId = ref('')
 const classDetail = ref(null)
@@ -41,7 +44,7 @@ const loading = reactive({
 const createClassOpen = ref(false)
 const rosterOpen = ref(false)
 const pwdInfo = ref(null)
-const classForm = reactive({ name: '', subject: '', grade: '' })
+const classForm = reactive({ name: '', subject: '', grade: '', group_id: '' })
 const creatingClass = ref(false)
 const pwdOpen = ref(false)
 const pwdForm = reactive({ old_password: '', new_password: '' })
@@ -52,6 +55,38 @@ const dialog = reactive({ open: false, mode: 'create', target: null, focus: [] }
 const filteredAssignments = computed(() =>
   assignments.value.filter((item) => !assignmentFilter.value || item.class_id === assignmentFilter.value),
 )
+
+function canManageGroup(group) {
+  return teacher.value?.role === 'owner' || group.owner_id === teacher.value?.id
+}
+
+const manageableGroups = computed(() => groups.value.filter(canManageGroup))
+
+function groupName(id) {
+  return groups.value.find((item) => item.id === id)?.name || '教研组'
+}
+
+/** 侧栏按教研组分组：组内班级在上，个人班级垫底。 */
+const classSections = computed(() => {
+  const sections = []
+  const index = new Map()
+  for (const item of classes.value) {
+    const key = item.group_id || ''
+    if (!index.has(key)) {
+      const section = { id: key, name: key ? groupName(key) : '个人班级', items: [] }
+      index.set(key, section)
+      sections.push(section)
+    }
+    index.get(key).items.push(item)
+  }
+  return sections.sort((a, b) => (a.id ? 0 : 1) - (b.id ? 0 : 1))
+})
+
+const assignmentReadonly = computed(() => {
+  const detail = assignmentDetail.value
+  if (!detail) return false
+  return Boolean(classes.value.find((item) => item.id === detail.class_id)?.readonly)
+})
 
 const reportDetail = computed(() => {
   if (!reportClassId.value || !classDetail.value) return null
@@ -163,10 +198,18 @@ onMounted(async () => {
 })
 
 async function refreshAll() {
-  await Promise.all([loadOverview(), loadClasses(), loadAssignments()])
+  await Promise.all([loadOverview(), loadClasses(), loadAssignments(), loadGroups()])
   if (selectedClassId.value) await loadClassDetail(selectedClassId.value)
   if (reportClassId.value) await ensureReportDetail()
   if (selectedAssignmentId.value) await loadAssignmentDetail(selectedAssignmentId.value)
+}
+
+async function loadGroups() {
+  try {
+    groups.value = (await api.teacher.groups.list()).items || []
+  } catch {
+    groups.value = []
+  }
 }
 
 async function loadOverview() {
@@ -232,11 +275,13 @@ async function createClass() {
       name: classForm.name.trim(),
       subject: classForm.subject.trim(),
       grade: classForm.grade.trim(),
+      group_id: classForm.group_id,
     })
     createClassOpen.value = false
     classForm.name = ''
     classForm.subject = ''
     classForm.grade = ''
+    classForm.group_id = ''
     await loadClasses()
     await selectClass(data.class.id)
     notify(`班级已创建，邀请码 ${data.class.code}`)
@@ -266,6 +311,19 @@ async function toggleArchive() {
     await api.teacher.classes.update(detail.class.id, { archived: !detail.class.archived })
     await Promise.all([loadClasses(), loadClassDetail(detail.class.id)])
     notify(detail.class.archived ? '班级已恢复' : '班级已归档')
+  } catch (error) {
+    notify(error.message, 'error')
+  }
+}
+
+async function changeClassGroup(event) {
+  const detail = classDetail.value
+  if (!detail) return
+  const groupId = typeof event === 'string' ? event : event.target.value
+  try {
+    await api.teacher.classes.update(detail.class.id, { group_id: groupId })
+    await Promise.all([loadClasses(), loadClassDetail(detail.class.id)])
+    notify(groupId ? `已挂到「${groupName(groupId)}」` : '班级已回到个人班级')
   } catch (error) {
     notify(error.message, 'error')
   }
@@ -580,6 +638,10 @@ function kindLabel(kind) {
           <span v-else-if="live === 'offline'" class="live-pill" title="正在重新连接">
             <span class="dot" />重连中
           </span>
+          <button class="btn btn-sm" type="button" @click="groupsOpen = true">
+            <Icon name="users" :size="13" />
+            教研组
+          </button>
           <button class="btn btn-sm" type="button" @click="pwdOpen = true">修改密码</button>
           <span class="teacher-badge">
             <span class="avatar">{{ (teacher.name || teacher.username).slice(0, 1) }}</span>
@@ -734,21 +796,27 @@ function kindLabel(kind) {
             </button>
             <div v-if="loading.classes && !classes.length" class="panel-empty">正在读取班级…</div>
             <div v-else-if="!classes.length" class="panel-empty">还没有班级。</div>
-            <button
-              v-for="item in classes"
-              :key="item.id"
-              class="class-item"
-              :class="{ active: selectedClassId === item.id }"
-              type="button"
-              @click="selectClass(item.id)"
-            >
-              <div class="row" style="justify-content: space-between; gap: 8px">
-                <strong>{{ item.name }}</strong>
-                <span v-if="item.archived" class="chip">已归档</span>
+            <template v-else>
+              <div v-for="section in classSections" :key="section.id || 'personal'">
+                <div class="small muted class-section-title">{{ section.name }}</div>
+                <button
+                  v-for="item in section.items"
+                  :key="item.id"
+                  class="class-item"
+                  :class="{ active: selectedClassId === item.id }"
+                  type="button"
+                  @click="selectClass(item.id)"
+                >
+                  <div class="row" style="justify-content: space-between; gap: 8px">
+                    <strong>{{ item.name }}</strong>
+                    <span v-if="item.readonly" class="chip accent">只读</span>
+                    <span v-else-if="item.archived" class="chip">已归档</span>
+                  </div>
+                  <div class="small muted">{{ item.subject || '未填科目' }} · {{ item.student_count }} 人</div>
+                  <div class="small muted">邀请码 {{ item.code }} · {{ item.open_count }} 份进行中</div>
+                </button>
               </div>
-              <div class="small muted">{{ item.subject || '未填科目' }} · {{ item.student_count }} 人</div>
-              <div class="small muted">邀请码 {{ item.code }} · {{ item.open_count }} 份进行中</div>
-            </button>
+            </template>
           </aside>
 
           <div class="panel class-detail">
@@ -762,6 +830,10 @@ function kindLabel(kind) {
                   <div class="row" style="gap: 6px; flex-wrap: wrap; margin-bottom: 4px">
                     <span class="chip">{{ classDetail.class.student_count }} 名学生</span>
                     <span class="chip">{{ classDetail.class.assignment_count }} 份作业</span>
+                    <span v-if="classDetail.class.readonly" class="chip accent">教研组共享 · 只读</span>
+                    <span v-else-if="classDetail.class.group_id" class="chip">
+                      {{ groupName(classDetail.class.group_id) }}
+                    </span>
                     <span v-if="classDetail.class.archived" class="chip">已归档</span>
                   </div>
                   <h2 class="detail-title">{{ classDetail.class.name }}</h2>
@@ -770,9 +842,16 @@ function kindLabel(kind) {
                     <template v-if="classDetail.class.grade"> · {{ classDetail.class.grade }}</template>
                     · 创建于 {{ formatTime(classDetail.class.created_at) }}
                   </p>
+                  <div v-if="!classDetail.class.readonly && manageableGroups.length" class="row" style="gap: 8px; margin-top: 8px">
+                    <span class="small muted">教研组</span>
+                    <select class="select" style="width: 180px" :value="classDetail.class.group_id" @change="changeClassGroup">
+                      <option value="">不归属教研组</option>
+                      <option v-for="item in manageableGroups" :key="item.id" :value="item.id">{{ item.name }}</option>
+                    </select>
+                  </div>
                 </div>
                 <div class="detail-actions">
-                  <button class="btn btn-sm" type="button" @click="openRoster">
+                  <button v-if="!classDetail.class.readonly" class="btn btn-sm" type="button" @click="openRoster">
                     <Icon name="users" :size="13" />
                     导入名单
                   </button>
@@ -780,10 +859,17 @@ function kindLabel(kind) {
                     <Icon name="download" :size="13" />
                     成绩报告
                   </button>
-                  <button class="btn btn-sm" type="button" @click="toggleArchive">
+                  <button v-if="!classDetail.class.readonly" class="btn btn-sm" type="button" @click="toggleArchive">
                     {{ classDetail.class.archived ? '恢复班级' : '归档' }}
                   </button>
-                  <button class="btn btn-sm btn-danger" type="button" @click="removeClass">删除班级</button>
+                  <button
+                    v-if="!classDetail.class.readonly"
+                    class="btn btn-sm btn-danger"
+                    type="button"
+                    @click="removeClass"
+                  >
+                    删除班级
+                  </button>
                 </div>
               </div>
 
@@ -808,7 +894,14 @@ function kindLabel(kind) {
                     <Icon name="link" :size="13" />
                     复制邀请链接
                   </button>
-                  <button class="btn btn-sm btn-ghost" type="button" @click="refreshCode">重置</button>
+                  <button
+                    v-if="!classDetail.class.readonly"
+                    class="btn btn-sm btn-ghost"
+                    type="button"
+                    @click="refreshCode"
+                  >
+                    重置
+                  </button>
                 </div>
               </div>
 
@@ -865,8 +958,10 @@ function kindLabel(kind) {
                       <td class="muted">{{ student.last_login ? formatTime(student.last_login) : '—' }}</td>
                       <td class="row-actions">
                         <button class="btn btn-sm btn-ghost" type="button" @click="downloadReport(student)">报告</button>
-                        <button class="btn btn-sm btn-ghost" type="button" @click="resetPassword(student)">重置密码</button>
-                        <button class="btn btn-sm btn-ghost" type="button" @click="removeStudent(student)">移出</button>
+                        <template v-if="!classDetail.class.readonly">
+                          <button class="btn btn-sm btn-ghost" type="button" @click="resetPassword(student)">重置密码</button>
+                          <button class="btn btn-sm btn-ghost" type="button" @click="removeStudent(student)">移出</button>
+                        </template>
                       </td>
                     </tr>
                   </tbody>
@@ -876,7 +971,12 @@ function kindLabel(kind) {
               <div class="section">
                 <div class="section-head">
                   <h2>本班作业</h2>
-                  <button class="btn btn-sm" type="button" @click="openCreateDialog">
+                  <button
+                    v-if="!classDetail.class.readonly"
+                    class="btn btn-sm"
+                    type="button"
+                    @click="openCreateDialog"
+                  >
                     <Icon name="plus" :size="13" />
                     布置作业
                   </button>
@@ -949,6 +1049,7 @@ function kindLabel(kind) {
           <AssignmentDetail
             :detail="assignmentDetail"
             :loading="loading.assignment"
+            :readonly="assignmentReadonly"
             @refresh="selectedAssignmentId && loadAssignmentDetail(selectedAssignmentId)"
             @export="exportAssignment"
             @toggle="toggleAssignment"
@@ -1072,6 +1173,14 @@ function kindLabel(kind) {
               <input id="class-grade" v-model="classForm.grade" class="input" placeholder="例：高一" maxlength="40" />
             </div>
           </div>
+          <div v-if="manageableGroups.length" class="field">
+            <label for="class-group">归属教研组（可选）</label>
+            <select id="class-group" v-model="classForm.group_id" class="select">
+              <option value="">不归属教研组</option>
+              <option v-for="item in manageableGroups" :key="item.id" :value="item.id">{{ item.name }}</option>
+            </select>
+            <span class="small muted">挂到教研组后，组内其他老师可以只读查看这个班。</span>
+          </div>
         </div>
         <div class="modal-foot">
           <button class="btn" type="button" @click="createClassOpen = false">取消</button>
@@ -1156,6 +1265,12 @@ function kindLabel(kind) {
       :focus-points="dialog.focus"
       @close="dialog.open = false"
       @created="onCreated"
+    />
+
+    <GroupDialog
+      v-if="groupsOpen"
+      @close="groupsOpen = false"
+      @changed="refreshAll"
     />
   </section>
 </template>

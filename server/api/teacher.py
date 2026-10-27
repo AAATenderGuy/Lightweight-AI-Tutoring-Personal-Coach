@@ -9,10 +9,21 @@ from fastapi.responses import FileResponse
 
 from ..llm import LLMError
 from ..schemas import (
-    AssignmentCreate, AssignmentUpdate, ClassCreate, ClassUpdate, PasswordChange,
-    PracticeRequest, StudentPasswordReset, SubmissionGrade, TeacherLogin, TeacherRegister,
+    AssignmentCreate,
+    AssignmentUpdate,
+    ClassCreate,
+    ClassUpdate,
+    GroupCreate,
+    GroupMemberAdd,
+    GroupUpdate,
+    PasswordChange,
+    PracticeRequest,
+    StudentPasswordReset,
+    SubmissionGrade,
+    TeacherLogin,
+    TeacherRegister,
 )
-from ..services import auth, classes, roster, uploads
+from ..services import audit, auth, classes, groups, perms, roster, uploads
 from .limits import rate_limit
 
 router = APIRouter(tags=["teacher"])
@@ -22,6 +33,10 @@ auth.ensure_demo_teacher()
 def _token(request: Request) -> str:
     header = request.headers.get("authorization", "")
     return header[7:].strip() if header.lower().startswith("bearer ") else ""
+
+
+def _ip(request: Request) -> str:
+    return (request.client.host if request.client else "") or ""
 
 
 def current_teacher(request: Request) -> dict:
@@ -35,26 +50,41 @@ def _bad(error: Exception) -> HTTPException:
     return HTTPException(status_code=400, detail=str(error))
 
 
+def _deny(detail: str = "只有组长或部署者可以查看审计记录。") -> HTTPException:
+    return HTTPException(status_code=403, detail=detail)
+
+
 # ---------------------------------------------------------------- 账号
 @router.post("/teacher/register", dependencies=[rate_limit("register", 10)])
-async def register(payload: TeacherRegister) -> dict:
+async def register(payload: TeacherRegister, request: Request) -> dict:
     try:
-        return auth.register(payload.username, payload.password, payload.name)
+        result = auth.register(payload.username, payload.password, payload.name)
     except ValueError as exc:
         raise _bad(exc) from exc
+    audit.record(audit.REGISTER, actor=result["teacher"], target=payload.username, ip=_ip(request))
+    return result
 
 
 @router.post("/teacher/login", dependencies=[rate_limit("login", 20)])
-async def login(payload: TeacherLogin) -> dict:
+async def login(payload: TeacherLogin, request: Request) -> dict:
     try:
-        return auth.login(payload.username, payload.password)
+        result = auth.login(payload.username, payload.password)
     except ValueError as exc:
+        audit.record(
+            audit.LOGIN, actor={"name": payload.username}, target=payload.username,
+            result="failed", ip=_ip(request),
+        )
         raise _bad(exc) from exc
+    audit.record(audit.LOGIN, actor=result["teacher"], target=payload.username, ip=_ip(request))
+    return result
 
 
 @router.post("/teacher/logout")
 async def logout(request: Request) -> dict:
+    teacher = auth.resolve(_token(request))
     auth.logout(_token(request))
+    if teacher:
+        audit.record(audit.LOGOUT, actor=teacher, ip=_ip(request))
     return {"ok": True}
 
 
@@ -70,7 +100,78 @@ async def change_password(request: Request, payload: PasswordChange) -> dict:
         auth.change_password(teacher["id"], payload.old_password, payload.new_password)
     except ValueError as exc:
         raise _bad(exc) from exc
+    audit.record(audit.PASSWORD, actor=teacher, target=teacher["id"], ip=_ip(request))
     return {"ok": True}
+
+
+# ---------------------------------------------------------------- 教研组
+@router.get("/teacher/groups")
+async def list_groups(request: Request) -> dict:
+    teacher = current_teacher(request)
+    return {"items": groups.list_for(teacher)}
+
+
+@router.post("/teacher/groups")
+async def create_group(request: Request, payload: GroupCreate) -> dict:
+    teacher = current_teacher(request)
+    try:
+        group = groups.create(teacher, payload.name)
+    except groups.GroupError as exc:
+        raise _bad(exc) from exc
+    audit.record(audit.GROUP_CREATE, actor=teacher, target=group["id"], ip=_ip(request))
+    return {"group": group}
+
+
+@router.patch("/teacher/groups/{group_id}")
+async def update_group(request: Request, group_id: str, payload: GroupUpdate) -> dict:
+    teacher = current_teacher(request)
+    try:
+        group = groups.update(teacher, group_id, name=payload.name)
+    except groups.GroupError as exc:
+        raise _bad(exc) from exc
+    audit.record(audit.GROUP_UPDATE, actor=teacher, target=group_id, ip=_ip(request))
+    return {"group": group}
+
+
+@router.delete("/teacher/groups/{group_id}")
+async def delete_group(request: Request, group_id: str) -> dict:
+    teacher = current_teacher(request)
+    try:
+        result = groups.delete(teacher, group_id)
+    except groups.GroupError as exc:
+        raise _bad(exc) from exc
+    audit.record(audit.GROUP_UPDATE, actor=teacher, target=group_id, result="deleted", ip=_ip(request))
+    return result
+
+
+@router.post("/teacher/groups/{group_id}/members")
+async def add_group_member(request: Request, group_id: str, payload: GroupMemberAdd) -> dict:
+    teacher = current_teacher(request)
+    try:
+        group = groups.add_member(teacher, group_id, payload.username)
+    except groups.GroupError as exc:
+        raise _bad(exc) from exc
+    audit.record(audit.GROUP_MEMBER_ADD, actor=teacher, target=f"{group_id}:{payload.username}", ip=_ip(request))
+    return {"group": group}
+
+
+@router.delete("/teacher/groups/{group_id}/members/{teacher_id}")
+async def remove_group_member(request: Request, group_id: str, teacher_id: str) -> dict:
+    teacher = current_teacher(request)
+    try:
+        group = groups.remove_member(teacher, group_id, teacher_id)
+    except groups.GroupError as exc:
+        raise _bad(exc) from exc
+    audit.record(audit.GROUP_MEMBER_REMOVE, actor=teacher, target=f"{group_id}:{teacher_id}", ip=_ip(request))
+    return {"group": group}
+
+
+@router.get("/teacher/audit")
+async def list_audit(request: Request, limit: int = 100) -> dict:
+    teacher = current_teacher(request)
+    if not perms.is_lead_anywhere(teacher):
+        raise _deny()
+    return {"items": audit.recent(limit)}
 
 
 # ---------------------------------------------------------------- 概览
@@ -91,11 +192,14 @@ async def list_classes(request: Request) -> dict:
 async def create_class(request: Request, payload: ClassCreate) -> dict:
     teacher = current_teacher(request)
     try:
-        return {"class": classes.create_class(
+        klass = classes.create_class(
             teacher["id"], name=payload.name, subject=payload.subject, grade=payload.grade,
-        )}
+            group_id=payload.group_id,
+        )
     except ValueError as exc:
         raise _bad(exc) from exc
+    audit.record(audit.CLASS_CREATE, actor=teacher, target=klass["id"], ip=_ip(request))
+    return {"class": klass}
 
 
 @router.get("/teacher/classes/{class_id}")
@@ -113,7 +217,7 @@ async def update_class(request: Request, class_id: str, payload: ClassUpdate) ->
     try:
         return {"class": classes.update_class(
             teacher["id"], class_id, name=payload.name, subject=payload.subject,
-            grade=payload.grade, archived=payload.archived,
+            grade=payload.grade, archived=payload.archived, group_id=payload.group_id,
         )}
     except ValueError as exc:
         raise _bad(exc) from exc
@@ -123,9 +227,11 @@ async def update_class(request: Request, class_id: str, payload: ClassUpdate) ->
 async def delete_class(request: Request, class_id: str) -> dict:
     teacher = current_teacher(request)
     try:
-        return classes.delete_class(teacher["id"], class_id)
+        result = classes.delete_class(teacher["id"], class_id)
     except ValueError as exc:
         raise _bad(exc) from exc
+    audit.record(audit.CLASS_DELETE, actor=teacher, target=class_id, ip=_ip(request))
+    return result
 
 
 @router.post("/teacher/classes/{class_id}/code")
@@ -164,11 +270,17 @@ async def import_roster(request: Request, class_id: str,
     if not content.strip():
         raise HTTPException(status_code=400, detail="请上传 CSV 或粘贴名单内容。")
     try:
-        return classes.import_roster(
+        result = classes.import_roster(
             teacher["id"], class_id, text=content, default_password=default_password,
         )
     except ValueError as exc:
         raise _bad(exc) from exc
+    audit.record(
+        audit.ROSTER_IMPORT, actor=teacher, target=class_id,
+        result=f"created={result.get('created', 0)} updated={result.get('updated', 0)}",
+        ip=_ip(request),
+    )
+    return result
 
 
 @router.get("/teacher/classes/{class_id}/roster.csv")
@@ -200,6 +312,7 @@ async def export_class(request: Request, class_id: str) -> Response:
         filename, content = classes.class_csv(teacher["id"], class_id)
     except ValueError as exc:
         raise _bad(exc) from exc
+    audit.record(audit.EXPORT, actor=teacher, target=f"class_csv:{class_id}", ip=_ip(request))
     return _file(content, "text/csv; charset=utf-8", filename)
 
 
@@ -211,6 +324,7 @@ async def class_report(request: Request, class_id: str) -> Response:
         filename, content = classes.class_report(teacher["id"], class_id)
     except ValueError as exc:
         raise _bad(exc) from exc
+    audit.record(audit.EXPORT, actor=teacher, target=f"class_report:{class_id}", ip=_ip(request))
     return _file(content.encode("utf-8"), "text/html; charset=utf-8", filename)
 
 
@@ -236,6 +350,10 @@ async def create_assignment(request: Request, payload: AssignmentCreate) -> dict
         raise _bad(exc) from exc
     except LLMError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    audit.record(
+        audit.ASSIGNMENT_CREATE, actor=teacher,
+        target=f"{payload.class_id}:{assignment.get('id')}", ip=_ip(request),
+    )
     return {"assignment": assignment}
 
 
@@ -265,9 +383,11 @@ async def update_assignment(request: Request, assignment_id: str, payload: Assig
 async def delete_assignment(request: Request, assignment_id: str) -> dict:
     teacher = current_teacher(request)
     try:
-        return classes.delete_assignment(teacher["id"], assignment_id)
+        result = classes.delete_assignment(teacher["id"], assignment_id)
     except ValueError as exc:
         raise _bad(exc) from exc
+    audit.record(audit.ASSIGNMENT_DELETE, actor=teacher, target=assignment_id, ip=_ip(request))
+    return result
 
 
 @router.post("/teacher/assignments/{assignment_id}/practice",
@@ -321,7 +441,7 @@ async def grade_submission(request: Request, submission_id: str, payload: Submis
     """教师复核：覆盖 AI 分数并保留修改记录，score 用百分制传入。"""
     teacher = current_teacher(request)
     try:
-        return classes.regrade_submission(
+        result = classes.regrade_submission(
             teacher["id"], submission_id,
             score=payload.score / 100,
             feedback=payload.feedback,
@@ -329,6 +449,11 @@ async def grade_submission(request: Request, submission_id: str, payload: Submis
         )
     except ValueError as exc:
         raise _bad(exc) from exc
+    audit.record(
+        audit.SUBMISSION_GRADE, actor=teacher, target=submission_id,
+        result=f"score={payload.score}", ip=_ip(request),
+    )
+    return result
 
 
 @router.post("/teacher/submissions/{submission_id}/regrade-ai",

@@ -7,6 +7,7 @@ import Icon from './Icon.vue'
 const props = defineProps({
   detail: { type: Object, default: null },
   loading: { type: Boolean, default: false },
+  readonly: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['refresh', 'practice', 'remove', 'export', 'toggle'])
@@ -139,6 +140,7 @@ function confirmRemove() {
             <span class="chip">{{ kindLabel }}</span>
             <span class="chip" :class="stateInfo.cls">{{ stateInfo.label }}</span>
             <span class="chip">{{ isFile ? '文件提交' : `共 ${detail.question_count} 题` }}</span>
+            <span v-if="readonly" class="chip accent">教研组共享 · 只读</span>
           </div>
           <h2 class="detail-title">{{ detail.title }}</h2>
           <p class="small muted" style="margin: 4px 0 0">
@@ -159,7 +161,7 @@ function confirmRemove() {
             导出明细
           </button>
           <button
-            v-if="!isFile"
+            v-if="!isFile && !readonly"
             class="btn btn-sm"
             type="button"
             :disabled="!detail.submissions?.length"
@@ -168,10 +170,10 @@ function confirmRemove() {
             <Icon name="spark" :size="13" />
             薄弱点补练
           </button>
-          <button class="btn btn-sm" type="button" @click="emit('toggle')">
+          <button v-if="!readonly" class="btn btn-sm" type="button" @click="emit('toggle')">
             {{ detail.closed ? '重新开放' : '关闭作业' }}
           </button>
-          <button class="btn btn-sm btn-danger" type="button" @click="confirmRemove">
+          <button v-if="!readonly" class="btn btn-sm btn-danger" type="button" @click="confirmRemove">
             <Icon name="trash" :size="13" />
           </button>
         </div>
@@ -236,6 +238,7 @@ function confirmRemove() {
         <div class="section-head">
           <h2>知识点统计</h2>
           <button
+            v-if="!readonly"
             class="btn btn-sm btn-ghost"
             type="button"
             :disabled="!detail.knowledge?.length"
@@ -302,8 +305,11 @@ function confirmRemove() {
               </td>
               <td class="muted">{{ formatTime(item.submitted_at) }}</td>
               <td class="row-actions">
-                <button class="btn btn-sm" type="button" @click="openGrade(item)">改分</button>
-                <button class="btn btn-sm btn-ghost" type="button" @click="regradeAi(item)">AI 重批</button>
+                <template v-if="!readonly">
+                  <button class="btn btn-sm" type="button" @click="openGrade(item)">改分</button>
+                  <button class="btn btn-sm btn-ghost" type="button" @click="regradeAi(item)">AI 重批</button>
+                </template>
+                <span v-else class="small muted">只读</span>
               </td>
             </tr>
           </tbody>

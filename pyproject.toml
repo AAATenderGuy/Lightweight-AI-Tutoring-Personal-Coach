@@ -1,0 +1,25 @@
+# 仅存放工具配置，本项目不作为可安装包发布（因此不声明 [project] / [build-system]）。
+
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+exclude = [".venv", "web", "data", "docs"]
+
+[tool.ruff.lint]
+# 只开「真问题」类规则，不引 pycodestyle 的纯风格项，避免把历史代码重排一遍。
+#   F   pyflakes：未定义名、未用导入 —— 这些是真 bug
+#   E4/E7/E9  pycodestyle 里与语法错误/缩进相关的子集
+#   I   isort：导入顺序
+#   B   bugbear：容易写错的陷阱
+#   UP  pyupgrade：过时写法
+select = ["F", "E4", "E7", "E9", "I", "B", "UP"]
+# B008：FastAPI 的 File()/Form()/Depends() 必须写在参数默认值里，是框架惯例不是笔误。
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+# 测试里允许断言式的长行与未使用变量（fixture 返回值）
+"tests/*" = ["B011"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

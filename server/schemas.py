@@ -109,6 +109,7 @@ class ClassCreate(BaseModel):
     name: str = Field(min_length=1, max_length=40)
     subject: str = Field(default="", max_length=40)
     grade: str = Field(default="", max_length=40)
+    group_id: str = Field(default="", max_length=64)
 
 
 class ClassUpdate(BaseModel):
@@ -116,6 +117,19 @@ class ClassUpdate(BaseModel):
     subject: str | None = Field(default=None, max_length=40)
     grade: str | None = Field(default=None, max_length=40)
     archived: bool | None = None
+    group_id: str | None = Field(default=None, max_length=64)
+
+
+class GroupCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=30)
+
+
+class GroupUpdate(BaseModel):
+    name: str | None = Field(default=None, max_length=30)
+
+
+class GroupMemberAdd(BaseModel):
+    username: str = Field(min_length=1, max_length=24)
 
 
 class AssignmentCreate(BaseModel):

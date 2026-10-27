@@ -4,11 +4,12 @@ from __future__ import annotations
 import asyncio
 import json
 import re
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import httpx
 
-from .config import Settings, settings as default_settings
+from .config import Settings
+from .config import settings as default_settings
 
 # 超时设置：连接要快，读取要足够长（生成长课堂时可能超过 2 分钟）。
 TIMEOUT = httpx.Timeout(connect=15.0, read=300.0, write=60.0, pool=30.0)
@@ -247,8 +248,8 @@ def _demo_lesson(context: dict) -> str:
 
     scene_content_1 = source_bullets(0, 3, [
         f"先明确「{topic}」解决什么问题，以及它出现的场景",
-        f"抓住 2-3 个核心要素，不要一次记住所有细节",
-        f"用自己的话写下第一版定义，稍后再修正",
+        "抓住 2-3 个核心要素，不要一次记住所有细节",
+        "用自己的话写下第一版定义，稍后再修正",
     ])
     scene_content_2 = source_bullets(3, 3, [
         f"把「{topic}」拆成「输入 → 过程 → 输出」三段来理解",
@@ -345,8 +346,8 @@ def _demo_quiz(context: dict) -> str:
         (f"请用自己的话概括「{topic}」的核心含义。", core, f"{topic}·核心定义"),
         (f"根据资料，「{topic}」包含哪些关键环节或影响因素？", detail, f"{topic}·结构理解"),
         (f"举一个具体例子，说明「{topic}」如何在现实中出现。", example, f"{topic}·应用迁移"),
-        (f"如果要向低年级同学讲「{topic}」，你会先讲什么？", f"先讲直觉和例子，再给定义，最后指出常见误区。", f"{topic}·表达迁移"),
-        (f"学习「{topic}」时，你最容易犯的错误是什么？如何自查？", f"能说出具体误区，并给出可执行的检查方法。", f"{topic}·元认知"),
+        (f"如果要向低年级同学讲「{topic}」，你会先讲什么？", "先讲直觉和例子，再给定义，最后指出常见误区。", f"{topic}·表达迁移"),
+        (f"学习「{topic}」时，你最容易犯的错误是什么？如何自查？", "能说出具体误区，并给出可执行的检查方法。", f"{topic}·元认知"),
     ]
     if variant:
         shift = variant % len(bank)

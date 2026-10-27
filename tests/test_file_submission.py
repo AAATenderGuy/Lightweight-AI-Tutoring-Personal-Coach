@@ -1,7 +1,7 @@
 """文件作业：提交、AI 批改、教师下载、教师复核与越权边界。"""
 from __future__ import annotations
 
-CONTENT = "光反应在类囊体薄膜上进行，暗反应在叶绿体基质中进行。".encode("utf-8")
+CONTENT = "光反应在类囊体薄膜上进行，暗反应在叶绿体基质中进行。".encode()
 
 
 def _create_file_assignment(client, teacher, klass, **overrides):

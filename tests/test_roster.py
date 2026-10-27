@@ -31,7 +31,7 @@ def test_import_roster_with_passwords(client, teacher, klass):
 
 
 def test_import_file_without_password_generates_pin(client, teacher, klass):
-    file = {"file": ("名单.csv", "2024201,王五\n".encode("utf-8"), "text/csv")}
+    file = {"file": ("名单.csv", "2024201,王五\n".encode(), "text/csv")}
     response = _import(client, teacher, klass, file=file)
     assert response.status_code == 200, response.text
     credential = response.json()["credentials"][0]

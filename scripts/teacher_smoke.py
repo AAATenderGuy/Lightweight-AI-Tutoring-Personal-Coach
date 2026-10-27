@@ -135,7 +135,7 @@ def main() -> None:
         response = client.post(
             f"{BASE}/api/student/tasks/{file_assignment['id']}/submit-file",
             data={"student_id": students[0][0], "token": students[0][1], "note": "实验报告"},
-            files={"file": ("报告.txt", "光反应在类囊体薄膜上进行，暗反应在叶绿体基质中进行。".encode("utf-8"), "text/plain")},
+            files={"file": ("报告.txt", "光反应在类囊体薄膜上进行，暗反应在叶绿体基质中进行。".encode(), "text/plain")},
         )
         response.raise_for_status()
         graded = response.json()

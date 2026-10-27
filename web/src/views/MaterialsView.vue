@@ -3,11 +3,13 @@ import { computed, reactive, ref } from 'vue'
 import { api } from '../api'
 import { loadMaterials, notify, state } from '../store'
 import Icon from '../components/Icon.vue'
+import OcrUploadDialog from '../components/OcrUploadDialog.vue'
 
 const fileInput = ref(null)
 const drag = ref(false)
 const uploading = ref(false)
 const uploads = ref([])
+const ocrOpen = ref(false)
 
 const totalChars = computed(() => state.materials.reduce((sum, item) => sum + (item.chars || 0), 0))
 
@@ -89,6 +91,10 @@ function ext(item) {
       </div>
       <div class="page-actions">
         <span v-if="state.materials.length" class="chip">{{ state.materials.length }} 篇 · {{ formatChars(totalChars) }}</span>
+        <button class="btn btn-sm" type="button" @click="ocrOpen = true">
+          <Icon name="spark" :size="14" />
+          拍题识别
+        </button>
         <button class="btn btn-sm" type="button" :disabled="uploading" @click="pick">
           <Icon name="upload" :size="14" />
           上传资料
@@ -152,5 +158,7 @@ function ext(item) {
         </div>
       </div>
     </div>
+
+    <OcrUploadDialog v-if="ocrOpen" @close="ocrOpen = false" @saved="loadMaterials()" />
   </section>
 </template>

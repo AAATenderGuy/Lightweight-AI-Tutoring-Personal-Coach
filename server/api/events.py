@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -57,7 +57,7 @@ def _stream(request: Request, topics: list[str], hello: dict,
             while True:
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=HEARTBEAT_SECONDS)
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     if await request.is_disconnected():
                         break
                     beats += 1

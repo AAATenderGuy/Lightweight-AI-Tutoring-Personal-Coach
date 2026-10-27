@@ -177,9 +177,14 @@ function useSuggestion(text) {
             <MarkdownText v-if="message.content" :source="message.content" />
             <div v-if="message.error" class="msg-error">{{ message.error }}</div>
             <div v-if="message.sources?.length" class="sources">
-              <span v-for="source in message.sources" :key="source.index" class="source-chip" :title="source.preview">
-                [{{ source.index }}] {{ source.title }}
-              </span>
+              <div v-for="source in message.sources" :key="source.index" class="source-card">
+                <div class="source-head">
+                  <span class="source-index">[{{ source.index }}]</span>
+                  <span class="source-title">{{ source.title }}</span>
+                  <span v-if="source.chunk_id" class="source-chunk">段落 {{ source.chunk_id }}</span>
+                </div>
+                <p class="source-preview">{{ source.preview }}</p>
+              </div>
             </div>
           </div>
         </template>

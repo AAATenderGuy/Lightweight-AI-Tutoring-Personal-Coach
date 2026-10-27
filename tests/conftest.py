@@ -9,6 +9,8 @@ from pathlib import Path
 os.environ["EDU_DATA_DIR"] = tempfile.mkdtemp(prefix="edu-tests-")
 os.environ["EDU_RATE_LIMIT"] = "0"
 os.environ["EDU_API_KEY"] = ""
+# 单测不下载向量模型：默认走 BM25 基线，混合链路用假编码器单独测（见 test_retrieval.py）。
+os.environ["EDU_RETRIEVAL_MODE"] = "bm25"
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 

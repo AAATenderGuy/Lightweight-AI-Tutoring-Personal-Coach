@@ -1,7 +1,7 @@
 """教师账号与会话。
 
-只依赖标准库：密码用 PBKDF2-SHA256 加盐存储；登录态落盘到 data/sessions.json，
-重启服务后不需要重新登录。磁盘上只保存 token 的 SHA-256，即使 data/ 被拷走，
+只依赖标准库：密码用 PBKDF2-SHA256 加盐存储；登录态写进存储层（默认 SQLite），
+重启服务后不需要重新登录。磁盘上只保存 token 的 SHA-256，即使数据被拷走，
 也不能直接拿来登录。
 """
 from __future__ import annotations
@@ -68,10 +68,13 @@ def find_by_username(username: str) -> dict | None:
 
 
 def public(teacher: dict) -> dict:
+    from . import perms  # 延迟导入：perms 依赖 store，避免循环
+
     return {
         "id": teacher.get("id"),
         "username": teacher.get("username"),
         "name": teacher.get("name") or teacher.get("username"),
+        "role": perms.role_of(teacher),
         "created_at": teacher.get("created_at"),
         "last_login": teacher.get("last_login"),
     }
@@ -94,10 +97,12 @@ def register(username: str, password: str, name: str) -> dict:
         if _find_by_username(username):
             raise ValueError("这个用户名已被占用，换一个或直接登录。")
         salt = secrets.token_hex(16)
+        role = "owner" if not store.list_items("teachers") else "teacher"
         teacher = store.save_item("teachers", {
             "id": store.new_id("tc_"),
             "username": username,
             "name": (name or username).strip()[:24],
+            "role": role,
             "salt": salt,
             "password_hash": _hash(password, salt),
             "created_at": time.time(),
@@ -166,9 +171,11 @@ def logout(token: str) -> None:
 
 def ensure_demo_teacher() -> None:
     """首次启动时放一个演示账号，方便直接体验教师工作台。"""
-    if store.list_items("teachers"):
-        return
-    try:
-        register(DEMO_USERNAME, DEMO_PASSWORD, DEMO_NAME)
-    except ValueError:
-        pass
+    if not store.list_items("teachers"):
+        try:
+            register(DEMO_USERNAME, DEMO_PASSWORD, DEMO_NAME)
+        except ValueError:
+            pass
+    from . import perms  # 老数据补 role，避免每次请求都回推
+
+    perms.backfill()

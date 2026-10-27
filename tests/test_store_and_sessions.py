@@ -31,9 +31,21 @@ def test_teacher_session_survives_reload(client, teacher):
 
 
 def test_raw_token_is_not_written_to_disk(teacher):
-    path = Path(os.environ["EDU_DATA_DIR"]) / "sessions.json"
-    assert path.is_file()
-    assert teacher["token"] not in path.read_text(encoding="utf-8")
+    """磁盘上只保留 token 的 SHA-256：扫一遍数据目录，明文 token 不应出现。"""
+    token = teacher["token"]
+    root = Path(os.environ["EDU_DATA_DIR"])
+    hits = [
+        str(path)
+        for path in root.rglob("*")
+        if path.is_file() and token in path.read_bytes().decode("utf-8", "ignore")
+    ]
+    assert hits == [], hits
+
+
+def test_sessions_are_persisted_in_store(teacher):
+    stored = store.read_shared("sessions", {})
+    assert stored, "登录态应写进存储层，重启后免登录"
+    assert teacher["token"] not in stored
 
 
 def test_read_upload_rejects_oversized_stream():

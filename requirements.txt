@@ -9,3 +9,12 @@ pypdf>=4,<6
 python-docx>=1.1,<2
 # Classroom export to PowerPoint.
 python-pptx>=0.6.23,<2
+# 拍题 OCR：纯 ONNX 推理，不需要 paddlepaddle（Python 3.14 没有 cp314 轮子）。
+# 首次启动会占约 120 MB 磁盘；不装也能跑，只是 /api/ocr/extract 返回 503。
+onnxruntime>=1.20,<2
+rapidocr>=3,<4
+pillow>=10,<14
+# 混合检索的向量层：fastembed（ONNX，不用 torch）。删掉这三行也能跑，
+# 此时 EDU_RETRIEVAL_MODE 只能取 bm25，否则自动回退到 bm25 并在日志里说明。
+fastembed>=0.9,<1
+numpy>=2,<3
