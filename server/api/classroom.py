@@ -15,6 +15,7 @@ from ..services import (
 from ..services import (
     discussion,
     export_pptx,
+    learning,
     mastery,
 )
 from ..services import (
@@ -159,6 +160,12 @@ async def group_discuss(payload: GroupDiscussRequest):
 
     history = [item.model_dump() for item in payload.history]
     config = agent_service.load()
+    learning.record(
+        learning.GROUP_DISCUSS,
+        topic=str(lesson.get("topic") or lesson.get("title") or ""),
+        ref_id=str(lesson.get("id") or ""),
+        summary=(payload.message.strip() or scene.get("prompt") or scene.get("title") or "")[:160],
+    )
 
     async def events():
         try:
@@ -236,6 +243,13 @@ async def discuss(payload: DiscussRequest):
         raise HTTPException(status_code=404, detail="页面不存在。")
 
     history = [item.model_dump() for item in payload.history]
+
+    learning.record(
+        learning.DISCUSS,
+        topic=str(lesson.get("topic") or lesson.get("title") or ""),
+        ref_id=str(lesson.get("id") or ""),
+        summary=payload.question.strip()[:160],
+    )
 
     async def events():
         try:

@@ -11,7 +11,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from ..schemas import JoinRequest, StudentIdRequest, StudentLogin, StudentSubmitRequest
-from ..services import classes, identity, uploads
+from ..services import classes, identity, learning, mastery, uploads
 from .limits import rate_limit
 
 router = APIRouter(tags=["student"])
@@ -98,6 +98,18 @@ async def submit_file(assignment_id: str, student_id: str = Form(...), token: st
         raise _bad(exc) from exc
     except ValueError as exc:
         raise _bad(exc) from exc
+
+
+@router.get("/student/timeline")
+async def timeline(student_id: str, token: str = "") -> dict:
+    """学习轨迹：这名学生的事件时间线 + 从事件流聚合出的掌握度。"""
+    _auth(student_id, token)
+    progress = mastery.student_progress(student_id)
+    return {
+        "events": learning.student_timeline(student_id),
+        "topics": progress["topics"],
+        "stats": progress["stats"],
+    }
 
 
 @router.get("/student/submissions/{submission_id}/files/{file_id}")

@@ -2882,6 +2882,92 @@ a:hover {
   color: var(--ink-3);
 }
 
+/* 学习轨迹（学生端） */
+.mastery-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mastery-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 180px) 1fr 44px auto;
+  gap: 10px;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.mastery-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mastery-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: #ecece5;
+  overflow: hidden;
+}
+
+.mastery-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #1f6b4c;
+}
+
+.mastery-val {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid #f0f0ea;
+  font-size: 12.5px;
+}
+
+.timeline-row:last-child {
+  border-bottom: 0;
+}
+
+.timeline-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timeline-score {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  flex: none;
+}
+
+@media (max-width: 760px) {
+  .mastery-row {
+    grid-template-columns: minmax(70px, 1fr) 44px;
+  }
+
+  .mastery-bar,
+  .mastery-row .chip {
+    display: none;
+  }
+}
+
 .task-run {
   display: flex;
   flex-direction: column;

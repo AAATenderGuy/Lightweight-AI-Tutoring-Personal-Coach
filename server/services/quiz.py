@@ -290,7 +290,7 @@ async def grade(quiz: dict, answers: list[dict], *, track: bool = True) -> dict:
                 topic,
                 item.get("knowledge_point") or topic,
                 item["score"],
-                source=quiz.get("id", ""),
+                source=f"{quiz.get('id', '')}:{item.get('question_id', '')}",
                 silent=True,
             )
         mastery_service.log_event(

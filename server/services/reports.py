@@ -191,7 +191,8 @@ def _e(value: object) -> str:
 
 
 def html_student_report(*, student: dict, klass: dict, teacher_name: str,
-                        assignments: list[dict], submissions: list[dict]) -> str:
+                        assignments: list[dict], submissions: list[dict],
+                        timeline: list[dict] | None = None) -> str:
     by_assignment = {str(item.get("assignment_id")): item for item in submissions}
     ordered_submissions = sorted(submissions, key=lambda item: float(item.get("submitted_at") or 0))
 
@@ -289,6 +290,26 @@ def html_student_report(*, student: dict, klass: dict, teacher_name: str,
                 "explanation": question["explanation"],
             })
 
+    if timeline:
+        timeline_rows = "".join(
+            '<tr><td>{when}</td><td><span class="tag {cls}">{label}</span></td>'
+            '<td>{text}</td><td class="num">{score}</td></tr>'.format(
+                when=_time(item.get("ts")),
+                cls="ok" if item.get("kind") in ("quiz", "assignment") else "warn",
+                label=_e(item.get("label") or "记录"),
+                text=_e(item.get("summary") or item.get("topic") or ""),
+                score=_pct(item["score"]) if item.get("score") is not None else "—",
+            )
+            for item in timeline
+        )
+        timeline_html = (
+            '<table><thead><tr><th>时间</th><th>类型</th><th>内容</th>'
+            '<th class="num">得分</th></tr></thead><tbody>'
+            + timeline_rows + "</tbody></table>"
+        )
+    else:
+        timeline_html = '<div class="empty">还没有学习轨迹记录。</div>'
+
     generated = time.strftime("%Y-%m-%d %H:%M")
 
     if assignment_rows:
@@ -372,6 +393,7 @@ def html_student_report(*, student: dict, klass: dict, teacher_name: str,
         head + summary
         + "  <h2>作业明细</h2>\n  " + assignment_html + "\n\n"
         + "  <h2>知识点掌握度</h2>\n  " + point_html + "\n\n"
+        + "  <h2>学习轨迹</h2>\n  " + timeline_html + "\n\n"
         + "  <h2>错题回顾</h2>\n  " + wrong_html + "\n"
         + tail
     )

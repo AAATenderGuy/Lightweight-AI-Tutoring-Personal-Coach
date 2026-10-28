@@ -14,7 +14,7 @@ from statistics import mean
 
 from .. import store
 from . import grading as grading_service
-from . import identity, perms, reports, uploads
+from . import identity, learning, perms, reports, uploads
 from . import questions as questions_service
 from . import quiz as quiz_service
 from . import roster as roster_service
@@ -1056,6 +1056,44 @@ def task_result(assignment_id: str, student_id: str) -> dict:
     return payload
 
 
+def _record_quiz_events(assignment: dict, submission: dict, result: dict) -> None:
+    """在线作业判分后写入学习事件流：逐题 attempt（掌握度的原料）+ 一条作业摘要。"""
+    topic = str(assignment.get("topic") or assignment.get("title") or "作业")
+    student_id = str(submission.get("student_id") or "")
+    class_id = str(submission.get("class_id") or "")
+    submission_id = str(submission.get("id") or "")
+    for item in result.get("results") or []:
+        learning.record(
+            learning.ATTEMPT, topic=topic,
+            point=str(item.get("knowledge_point") or topic),
+            score=item.get("score"), student_id=student_id, class_id=class_id,
+            ref_id=f"{submission_id}:{item.get('question_id', '')}", source="assignment",
+        )
+    learning.record(
+        learning.ASSIGNMENT, topic=topic, score=submission.get("score"),
+        student_id=student_id, class_id=class_id, ref_id=submission_id, source="assignment",
+        summary=f"提交作业《{assignment.get('title') or ''}》",
+    )
+
+
+def _record_file_event(assignment: dict, submission: dict, *, source: str = "assignment") -> None:
+    """文件作业只有总分：一条 attempt（教师改分时按同 ref 追加新分数）+ 作业摘要。"""
+    topic = str(assignment.get("topic") or assignment.get("title") or "作业")
+    student_id = str(submission.get("student_id") or "")
+    class_id = str(submission.get("class_id") or "")
+    submission_id = str(submission.get("id") or "")
+    learning.record(
+        learning.ATTEMPT, topic=topic, point=topic, score=submission.get("score"),
+        student_id=student_id, class_id=class_id, ref_id=submission_id, source=source,
+    )
+    if source == "assignment":
+        learning.record(
+            learning.ASSIGNMENT, topic=topic, score=submission.get("score"),
+            student_id=student_id, class_id=class_id, ref_id=submission_id, source=source,
+            summary=f"提交作业《{assignment.get('title') or ''}》",
+        )
+
+
 async def submit_task(assignment_id: str, student_id: str, answers: list[dict]) -> dict:
     assignment, student, quiz = _task_assignment(assignment_id, student_id)
     if _due_state(assignment) != "open":
@@ -1094,6 +1132,7 @@ async def submit_task(assignment_id: str, student_id: str, answers: list[dict]) 
             "regrade_history": existing.get("regrade_history") or [],
         }
         store.save_item("submissions", submission)
+    _record_quiz_events(assignment, submission, result)
     bus.publish(f"teacher:{assignment['teacher_id']}", "submission_saved",
                 class_id=assignment.get("class_id"), assignment_id=assignment_id,
                 assignment_title=assignment.get("title"),
@@ -1170,6 +1209,7 @@ async def submit_file(assignment_id: str, student_id: str, *, filename: str,
             "created_at": existing.get("created_at") or time.time(),
         }
         store.save_item("submissions", submission)
+    _record_file_event(assignment, submission)
     bus.publish(f"teacher:{assignment['teacher_id']}", "submission_saved",
                 class_id=assignment.get("class_id"), assignment_id=assignment_id,
                 assignment_title=assignment.get("title"), kind="file",
@@ -1249,6 +1289,9 @@ def regrade_submission(teacher_id: str, submission_id: str, *, score: float,
         "regrade_history": history,
     })
     store.save_item("submissions", submission)
+    if submission.get("kind") == "file":
+        # 文件作业的掌握度事件只有总分一条，改分 = 同引用追加最新分数
+        _record_file_event(assignment, submission, source="regrade")
     bus.publish(f"teacher:{teacher_id}", "submission_graded",
                 class_id=assignment.get("class_id"), assignment_id=assignment["id"],
                 submission_id=submission_id, student_id=submission.get("student_id"),
@@ -1447,6 +1490,7 @@ def student_report(teacher_id: str, student_id: str) -> tuple[str, str]:
     html = reports.html_student_report(
         student=student, klass=klass, teacher_name=teacher.get("name") or teacher.get("username", ""),
         assignments=assignments, submissions=submissions,
+        timeline=learning.student_timeline(student_id, limit=40),
     )
     safe_name = str(student.get("name") or "学生").replace("/", "_").replace("\\", "_")
     return f"{safe_name}-学习报告.html", html

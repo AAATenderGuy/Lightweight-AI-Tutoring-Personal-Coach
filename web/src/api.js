@@ -291,6 +291,9 @@ export const api = {
     result: (assignmentId, studentId, token) => request(
       `/api/student/tasks/${assignmentId}/result?student_id=${encodeURIComponent(studentId)}&token=${encodeURIComponent(token || '')}`,
     ),
+    timeline: (studentId, token) => request(
+      `/api/student/timeline?student_id=${encodeURIComponent(studentId)}&token=${encodeURIComponent(token || '')}`,
+    ),
     submit: (assignmentId, studentId, token, answers) => request(`/api/student/tasks/${assignmentId}/submit`, {
       method: 'POST',
       body: { student_id: studentId, token, answers },

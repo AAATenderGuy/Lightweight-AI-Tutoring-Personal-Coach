@@ -27,7 +27,7 @@ _CACHE: dict[Path, tuple[int, int, Any]] = {}
 COLLECTIONS = (
     "materials", "lessons", "quizzes", "chats",
     "teachers", "classes", "students", "assignments", "submissions", "groups",
-    "questions",
+    "questions", "learning_events",
 )
 SHARED_NAMES = ("progress", "sessions", "agents")
 

@@ -25,6 +25,7 @@ const activeTask = ref(null)
 const quiz = ref(null)
 const answers = reactive({})
 const result = ref(null)
+const timeline = ref({ events: [], topics: [] })
 const selectedFile = ref(null)
 const fileNote = ref('')
 const uploading = ref(false)
@@ -93,12 +94,21 @@ async function refreshTasks() {
   if (!profile.value?.id) return
   loading.value = true
   try {
-    await loadStudentTasks()
+    await Promise.all([loadStudentTasks(), loadTimeline()])
   } catch (error) {
     notify(error.message, 'error')
     if (/学生档案不存在|班级已被删除|重新加入|身份已失效/.test(error.message)) clearStudent()
   } finally {
     loading.value = false
+  }
+}
+
+async function loadTimeline() {
+  // 学习轨迹只是旁路展示，加载失败不影响任务列表
+  try {
+    timeline.value = await api.student.timeline(profile.value.id, profile.value.token)
+  } catch {
+    timeline.value = { events: [], topics: [] }
   }
 }
 
@@ -805,6 +815,29 @@ function correctText(item) {
                 </div>
               </div>
             </template>
+
+            <div v-if="timeline.topics.length || timeline.events.length" class="section">
+              <div class="section-head">
+                <h2>学习轨迹</h2>
+                <span class="small muted">由作业与测验记录自动汇总</span>
+              </div>
+              <div v-if="timeline.topics.length" class="mastery-list">
+                <div v-for="topic in timeline.topics.slice(0, 6)" :key="topic.topic" class="mastery-row">
+                  <span class="mastery-name" :title="topic.topic">{{ topic.topic }}</span>
+                  <div class="mastery-bar"><i :style="{ width: scoreOf(topic.mastery) + '%' }" /></div>
+                  <span class="mastery-val">{{ scoreOf(topic.mastery) }}%</span>
+                  <span class="chip">{{ topic.label }}</span>
+                </div>
+              </div>
+              <div v-if="timeline.events.length" class="timeline-list">
+                <div v-for="event in timeline.events" :key="event.id" class="timeline-row">
+                  <span class="chip accent">{{ event.label }}</span>
+                  <span class="timeline-text" :title="event.summary">{{ event.summary || event.topic }}</span>
+                  <span v-if="event.score != null" class="timeline-score">{{ scoreOf(event.score) }}分</span>
+                  <span class="small muted">{{ formatTime(event.ts) }}</span>
+                </div>
+              </div>
+            </div>
           </template>
         </div>
       </div>
