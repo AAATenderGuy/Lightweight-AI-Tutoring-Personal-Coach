@@ -14,6 +14,7 @@ import time
 from .. import db, store
 from ..config import DATA_DIR
 from ..observability import logger
+from . import perms
 
 log = logger("edu.audit")
 
@@ -79,3 +80,22 @@ def recent(limit: int = 100) -> list[dict]:
                 continue
         return list(reversed(rows))[:limit]
     return db.list_audit(limit)
+
+
+def visible_for(teacher: dict, limit: int = 100) -> list[dict]:
+    """按请求者裁剪的审计视图。
+
+    部署者（owner）看全部；组长只看到自己与所在组的记录，且 IP 一律打码——
+    审计是给「管这一摊的人」看的，不是全平台的监控面板。
+    """
+    limit = max(1, min(int(limit or 100), MAX_ROWS))
+    rows = recent(MAX_ROWS)
+    if perms.role_of(teacher) == "owner":
+        return rows[:limit]
+    allowed = {str(teacher.get("id") or "")}
+    for group in perms.groups_of(teacher.get("id") or ""):
+        if perms.can_manage_group(teacher, group):
+            allowed.add(str(group.get("owner_id") or ""))
+            allowed.update(str(item.get("teacher_id") or "") for item in group.get("members") or [])
+    rows = [{**row, "ip": ""} for row in rows if str(row.get("actor_id") or "") in allowed]
+    return rows[:limit]

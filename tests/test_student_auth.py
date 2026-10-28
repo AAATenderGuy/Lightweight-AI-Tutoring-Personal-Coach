@@ -70,3 +70,40 @@ def test_start_requires_token(client, klass, teacher, student):
         json={"student_id": student["student"]["id"], "token": "nope"},
     )
     assert response.status_code == 401
+
+
+def test_join_cannot_reclaim_profile_with_submissions(client, klass, teacher):
+    """姓名 + 学号不是身份凭证：已有答题记录的档案不能再靠它换发令牌。"""
+    first = client.post("/api/student/join", json={
+        "code": klass["code"], "name": "重入同学", "number": "77",
+    })
+    assert first.status_code == 200, first.text
+    student = first.json()
+
+    assignment = client.post("/api/teacher/assignments", headers=teacher["headers"], json={
+        "class_id": klass["id"], "topic": "重入保护", "kind": "quiz", "count": 2,
+    }).json()["assignment"]
+    started = client.post(f"/api/student/tasks/{assignment['id']}/start", json={
+        "student_id": student["student"]["id"], "token": student["token"],
+    })
+    assert started.status_code == 200, started.text
+    answers = [
+        {"question_id": item["id"], "answer": (item.get("options") or ["答案"])[0]}
+        for item in started.json()["quiz"]["questions"]
+    ]
+    submitted = client.post(f"/api/student/tasks/{assignment['id']}/submit", json={
+        "student_id": student["student"]["id"], "token": student["token"], "answers": answers,
+    })
+    assert submitted.status_code == 200, submitted.text
+
+    again = client.post("/api/student/join", json={
+        "code": klass["code"], "name": "重入同学", "number": "77",
+    })
+    assert again.status_code == 400
+    assert "冒用" in again.json()["detail"]
+
+    # 没有答题记录的档案（或不同学号的新同学）仍然可以正常加入
+    fresh = client.post("/api/student/join", json={
+        "code": klass["code"], "name": "重入同学", "number": "78",
+    })
+    assert fresh.status_code == 200, fresh.text

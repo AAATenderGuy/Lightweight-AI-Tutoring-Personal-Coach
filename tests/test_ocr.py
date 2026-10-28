@@ -53,6 +53,16 @@ def test_prepare_image_rejects_garbage():
         ocr.prepare_image(b"definitely not an image")
 
 
+def test_prepare_image_rejects_pixel_bomb():
+    """头里标 9000 万像素、文件本身很小：解码前就该被拒，而不是撑爆内存。"""
+    buffer = io.BytesIO()
+    Image.new("RGB", (9000, 10000), "white").save(buffer, format="PNG")
+    assert len(buffer.getvalue()) < ocr.MAX_BYTES  # 压缩后远小于上传上限，光看字节数拦不住
+    with pytest.raises(ocr.OcrError) as excinfo:
+        ocr.prepare_image(buffer.getvalue())
+    assert "像素" in str(excinfo.value)
+
+
 def test_extract_rejects_empty_and_oversized():
     with pytest.raises(ocr.OcrError):
         ocr.extract(b"")

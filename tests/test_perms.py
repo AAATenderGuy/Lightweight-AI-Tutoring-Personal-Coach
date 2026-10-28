@@ -88,10 +88,18 @@ def test_member_can_read_but_not_write(client, actors, shared_class):
     detail = client.get(f"/api/teacher/classes/{shared_class['id']}", headers=actors["member"]["headers"])
     assert detail.status_code == 200
     assert detail.json()["class"]["readonly"] is True
+    # 组员能看班级结构，但看不到分数（成绩只对创建者 / 组长开放）
+    assert detail.json()["can_view_grades"] is False
+    assert all(item["avg_score"] is None for item in detail.json()["students"])
+    assert detail.json()["stats"]["avg_score"] is None
 
     report = client.get(f"/api/teacher/classes/{shared_class['id']}/report.html",
                         headers=actors["member"]["headers"])
-    assert report.status_code == 200
+    assert report.status_code == 400
+
+    csv = client.get(f"/api/teacher/classes/{shared_class['id']}/export.csv",
+                     headers=actors["member"]["headers"])
+    assert csv.status_code == 400
 
     patch = client.patch(f"/api/teacher/classes/{shared_class['id']}", json={"name": "改个名"},
                          headers=actors["member"]["headers"])
@@ -108,6 +116,23 @@ def test_lead_can_write_group_class(client, actors, shared_class):
                             json={"grade": "高一"}, headers=actors["lead"]["headers"])
     assert response.status_code == 200
     assert response.json()["class"]["grade"] == "高一"
+
+
+def test_member_sees_no_scores_in_lists(client, actors, shared_class):
+    created = client.post("/api/teacher/assignments", json={
+        "class_id": shared_class["id"], "topic": "组内成绩可见性", "count": 2,
+    }, headers=actors["lead"]["headers"])
+    assert created.status_code == 200, created.text
+
+    items = client.get("/api/teacher/assignments", headers=actors["member"]["headers"]).json()["items"]
+    shared = next(item for item in items if item["class_id"] == shared_class["id"])
+    assert shared["avg_score"] is None
+
+    overview = client.get("/api/teacher/overview", headers=actors["member"]["headers"]).json()
+    assert overview["stats"]["avg_score"] is None
+
+    lead_view = client.get("/api/teacher/assignments", headers=actors["lead"]["headers"]).json()["items"]
+    assert next(item for item in lead_view if item["class_id"] == shared_class["id"])["avg_score"] is not None
 
 
 def test_only_lead_or_owner_can_invite(client, actors, group):

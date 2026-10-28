@@ -19,6 +19,7 @@ from .api import api_router
 from .config import APP_NAME, APP_SUBTITLE, DATA_DIR, ROOT, VERSION, WEB_DIST
 from .llm import LLMError
 from .observability import AccessLog, logger, setup_logging
+from .services import retrieval
 
 setup_logging()
 log = logger("edu.main")
@@ -48,6 +49,7 @@ async def lifespan(app: FastAPI):
     log.info("starting %s v%s data_dir=%s", APP_NAME, VERSION, DATA_DIR)
     print(f"\n  {APP_NAME} · {APP_SUBTITLE}  v{VERSION}")
     print(f"  数据目录：{DATA_DIR}")
+    retrieval.warmup()  # 后台预载向量模型，不阻塞启动
     yield
     log.info("stopped %s v%s", APP_NAME, VERSION)
 

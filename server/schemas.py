@@ -143,7 +143,7 @@ class AssignmentCreate(BaseModel):
     due_at: float = Field(default=0, ge=0)
     instructions: str = Field(default="", max_length=300)
     rubric: str = Field(default="", max_length=1500)
-    reveal: bool = True
+    reveal: bool = False
 
 
 class AssignmentUpdate(BaseModel):

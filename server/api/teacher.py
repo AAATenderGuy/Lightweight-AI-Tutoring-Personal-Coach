@@ -171,7 +171,8 @@ async def list_audit(request: Request, limit: int = 100) -> dict:
     teacher = current_teacher(request)
     if not perms.is_lead_anywhere(teacher):
         raise _deny()
-    return {"items": audit.recent(limit)}
+    # 组长只看到本组相关的记录，IP 只对部署者展示，避免一个两人小组看全平台审计。
+    return {"items": audit.visible_for(teacher, limit)}
 
 
 # ---------------------------------------------------------------- 概览

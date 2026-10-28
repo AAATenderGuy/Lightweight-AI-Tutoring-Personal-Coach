@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -31,10 +32,12 @@ DEFAULT_MODEL = "BAAI/bge-small-zh-v1.5"
 RRF_K = 60           # RRF 平滑常数，业界默认 60
 CANDIDATES = 20      # 每路召回条数
 FUSED = 10           # 融合后进入重排的条数
+RETRY_AFTER = 60.0   # 模型加载失败后的冷却秒数，期间直接复用错误信息
 
 _encoder_lock = threading.Lock()
 _encoder = None
 _encoder_error = ""
+_encoder_tried_at = 0.0
 
 
 # ---------------------------------------------------------------- 配置读取
@@ -67,15 +70,16 @@ def _model_cache() -> Path:
 
 # ---------------------------------------------------------------- 向量编码
 def _encoder_instance():
-    """懒加载向量模型；加载失败只尝试一次，之后直接抛错让上层回退。"""
-    global _encoder, _encoder_error
+    """懒加载向量模型；失败后冷却 RETRY_AFTER 秒，期间复用错误信息，之后允许重试。"""
+    global _encoder, _encoder_error, _encoder_tried_at
     if _encoder is not None:
         return _encoder
     with _encoder_lock:
         if _encoder is not None:
             return _encoder
-        if _encoder_error:
+        if _encoder_error and time.time() - _encoder_tried_at < RETRY_AFTER:
             raise RuntimeError(_encoder_error)
+        _encoder_tried_at = time.time()
         try:
             from fastembed import TextEmbedding
         except ImportError as exc:
@@ -84,12 +88,28 @@ def _encoder_instance():
         try:
             cache = _model_cache()
             cache.mkdir(parents=True, exist_ok=True)
-            _encoder = TextEmbedding(model_name=model_name(), cache_dir=str(cache))
+            model = TextEmbedding(model_name=model_name(), cache_dir=str(cache))
         except Exception as exc:  # noqa: BLE001 - 网络/磁盘/模型名异常类型不统一
             _encoder_error = f"向量模型加载失败：{exc}"
             raise RuntimeError(_encoder_error) from exc
+        _encoder = model
+        _encoder_error = ""  # 重试成功后清掉旧错误
         log.info("dense encoder ready model=%s", model_name())
     return _encoder
+
+
+def warmup() -> None:
+    """启动时后台预载向量模型：不阻塞进程，失败只留在 stats 里，检索照常退回 BM25。"""
+    if mode() == "bm25":
+        return
+
+    def _load() -> None:
+        try:
+            _encoder_instance()
+        except RuntimeError as exc:
+            log.warning("向量模型预热失败（检索退回 BM25）：%s", exc)
+
+    threading.Thread(target=_load, name="retrieval-warmup", daemon=True).start()
 
 
 def available() -> bool:

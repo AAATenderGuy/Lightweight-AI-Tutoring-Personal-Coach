@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import time
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from ..config import settings as app_settings
 from ..llm import LLMError, llm
 from ..schemas import SettingsPayload
+from .teacher import current_teacher
 
 router = APIRouter(tags=["settings"])
 
@@ -17,7 +18,10 @@ async def get_settings() -> dict:
 
 
 @router.put("/settings")
-async def update_settings(payload: SettingsPayload) -> dict:
+async def update_settings(payload: SettingsPayload, request: Request) -> dict:
+    # 模型地址与 Key 是部署级配置：只允许教师账号修改，否则任何人都能把
+    # 全平台的对话与资料导到自己的服务上。
+    current_teacher(request)
     return app_settings.update(
         base_url=payload.base_url,
         model=payload.model,

@@ -89,6 +89,15 @@ def _own_class(teacher_id: str, class_id: str, *, write: bool = True) -> dict:
     return klass
 
 
+def _own_class_grades(teacher_id: str, class_id: str) -> dict:
+    """成绩/报告类读操作：组内普通教师能看班级结构，但看不到分数与报告。"""
+    klass = _own_class(teacher_id, class_id, write=False)
+    teacher = store.load_item("teachers", teacher_id) or {"id": teacher_id}
+    if not perms.can_view_grades(teacher, klass):
+        raise ValueError("只有组长或班级创建者可以查看成绩与报告。")
+    return klass
+
+
 def _students_of(class_id: str) -> list[dict]:
     items = [item for item in store.list_items("students") if item.get("class_id") == class_id]
     items.sort(key=lambda item: float(item.get("created_at") or 0))
@@ -143,9 +152,12 @@ def _progress(assignment: dict, students: list[dict], submissions: list[dict]) -
 
 
 def _assignment_public(assignment: dict, *, class_name: str = "", students: list[dict] | None = None,
-                       submissions: list[dict] | None = None) -> dict:
+                       submissions: list[dict] | None = None, allow_grades: bool = True) -> dict:
     students = students if students is not None else _students_of(assignment["class_id"])
     submissions = submissions if submissions is not None else _submissions_of(assignment["id"])
+    progress = _progress(assignment, students, submissions)
+    if not allow_grades:
+        progress["avg_score"] = None
     return {
         "id": assignment.get("id"),
         "class_id": assignment.get("class_id"),
@@ -159,11 +171,11 @@ def _assignment_public(assignment: dict, *, class_name: str = "", students: list
         "instructions": assignment.get("instructions", ""),
         "rubric": assignment.get("rubric", ""),
         "due_at": _number(assignment.get("due_at")),
-        "reveal": bool(assignment.get("reveal", True)),
+        "reveal": bool(assignment.get("reveal", False)),
         "closed": bool(assignment.get("closed")),
         "state": _due_state(assignment),
         "created_at": assignment.get("created_at"),
-        **_progress(assignment, students, submissions),
+        **progress,
     }
 
 
@@ -183,6 +195,7 @@ def _student_public(student: dict) -> dict:
 # ---------------------------------------------------------------- 班级
 def list_classes(teacher_id: str) -> list[dict]:
     all_submissions = store.list_items("submissions")
+    teacher = store.load_item("teachers", teacher_id) or {"id": teacher_id}
     result = []
     for klass in _visible_classes(teacher_id):
         students = _students_of(klass["id"])
@@ -204,7 +217,8 @@ def list_classes(teacher_id: str) -> list[dict]:
             "assignment_count": len(assignments),
             "open_count": len([item for item in assignments if _due_state(item) == "open"]),
             "submitted": submitted,
-            "avg_score": _avg(scored),
+            # 组内普通教师可以看共享班级，但看不到分数（宁可不报，也不链式泄露）
+            "avg_score": _avg(scored) if perms.can_view_grades(teacher, klass) else None,
         })
     return result
 
@@ -306,6 +320,8 @@ def delete_class(teacher_id: str, class_id: str) -> dict:
 
 def class_detail(teacher_id: str, class_id: str) -> dict:
     klass = _own_class(teacher_id, class_id, write=False)
+    teacher = store.load_item("teachers", teacher_id) or {"id": teacher_id}
+    allow_grades = perms.can_view_grades(teacher, klass)
     students = _students_of(class_id)
     assignments = _assignments_of(class_id)
     all_submissions = store.list_items("submissions")
@@ -319,9 +335,12 @@ def class_detail(teacher_id: str, class_id: str) -> dict:
     assignment_items = []
     for assignment in assignments:
         submissions = [item for item in all_submissions if item.get("assignment_id") == assignment["id"]]
-        assignment_items.append(_assignment_public(
+        public = _assignment_public(
             assignment, class_name=klass.get("name", ""), students=students, submissions=submissions,
-        ))
+        )
+        if not allow_grades:
+            public["avg_score"] = None  # 只保留提交进度，不给分数
+        assignment_items.append(public)
 
     student_items = []
     for student in students:
@@ -329,7 +348,7 @@ def class_detail(teacher_id: str, class_id: str) -> dict:
         student_items.append({
             **_student_public(student),
             "submitted": len(scores),
-            "avg_score": _avg(scores),
+            "avg_score": _avg(scores) if allow_grades else None,
         })
 
     all_scores = [score for scores in per_student.values() for score in scores]
@@ -341,8 +360,9 @@ def class_detail(teacher_id: str, class_id: str) -> dict:
             "students": len(students),
             "assignments": len(assignments),
             "submissions": len(all_scores),
-            "avg_score": _avg(all_scores),
+            "avg_score": _avg(all_scores) if allow_grades else None,
         },
+        "can_view_grades": allow_grades,
     }
 
 
@@ -395,6 +415,14 @@ def join(code: str, name: str, number: str = "") -> dict:
         if student.get("name") == name and str(student.get("number") or "") == number:
             existing = student
             break
+    if existing and any(
+        item.get("student_id") == existing["id"] for item in store.list_items("submissions")
+    ):
+        # 姓名 + 学号是同桌就能打听到的信息，不能当作换发令牌的凭证；
+        # 已有答题记录的档案只走学号 + 密码登录（老师在名单里设置密码）。
+        raise ValueError(
+            "这个姓名 + 学号已有答题记录。为防止冒用，请让老师在名单里为你设置密码后，用学号 + 密码登录。"
+        )
     if existing:
         existing["last_seen"] = time.time()
         store.save_item("students", existing)
@@ -596,6 +624,7 @@ def roster_csv(teacher_id: str, class_id: str) -> tuple[str, bytes]:
 # ---------------------------------------------------------------- 作业
 def list_assignments(teacher_id: str, class_id: str = "") -> list[dict]:
     class_map = {item["id"]: item for item in _visible_classes(teacher_id)}
+    teacher = store.load_item("teachers", teacher_id) or {"id": teacher_id}
     all_submissions = store.list_items("submissions")
     items = []
     for assignment in store.list_items("assignments"):
@@ -610,6 +639,7 @@ def list_assignments(teacher_id: str, class_id: str = "") -> list[dict]:
         submissions = [item for item in all_submissions if item.get("assignment_id") == assignment["id"]]
         items.append(_assignment_public(
             assignment, class_name=klass.get("name", ""), students=students, submissions=submissions,
+            allow_grades=perms.can_view_grades(teacher, klass),
         ))
     items.sort(key=lambda item: -float(item.get("created_at") or 0))
     return items
@@ -619,7 +649,7 @@ async def create_assignment(teacher_id: str, *, class_id: str, title: str, topic
                             kind: str = "homework", submission_mode: str = "quiz",
                             count: int = 4, difficulty: str = "medium",
                             due_at: float = 0.0, instructions: str = "",
-                            rubric: str = "", reveal: bool = True) -> dict:
+                            rubric: str = "", reveal: bool = False) -> dict:
     klass = _own_class(teacher_id, class_id)
     topic = _text(topic, 120)
     if not topic:
@@ -711,7 +741,7 @@ def assignment_detail(teacher_id: str, assignment_id: str) -> dict:
     assignment = store.load_item("assignments", assignment_id)
     if not assignment:
         raise ValueError("作业不存在。")
-    klass = _own_class(teacher_id, assignment.get("class_id") or "", write=False)
+    klass = _own_class_grades(teacher_id, assignment.get("class_id") or "")
     if not klass:
         raise ValueError("作业不存在。")
     students = _students_of(assignment["class_id"])
@@ -865,6 +895,10 @@ async def practice_assignment(teacher_id: str, assignment_id: str, *,
 
 
 # ---------------------------------------------------------------- 学生作答
+# 在线作答的重交上限：只给「改错一次再交」的余地，避免拿答案反复刷分。
+MAX_ATTEMPTS = 3
+
+
 def _task_assignment(assignment_id: str, student_id: str) -> tuple[dict, dict, dict]:
     student = store.load_item("students", student_id)
     if not student:
@@ -954,7 +988,7 @@ def _file_result_payload(assignment: dict, submission: dict) -> dict:
         "graded_by": submission.get("graded_by", ""),
         "graded_at": submission.get("graded_at"),
         "needs_review": bool(submission.get("needs_review") or ai.get("needs_review")),
-        "reveal": bool(assignment.get("reveal", True)),
+        "reveal": bool(assignment.get("reveal", False)),
         "results": [],
         "correct_count": 0,
         "total": 0,
@@ -974,7 +1008,7 @@ def task_result(assignment_id: str, student_id: str) -> dict:
         "correct_count": submission.get("correct_count"),
         "total": submission.get("total"),
         "results": submission.get("results") or [],
-    }, bool(assignment.get("reveal", True)))
+    }, bool(assignment.get("reveal", False)))
     payload.update({
         "assignment_id": assignment_id,
         "title": assignment.get("title"),
@@ -996,10 +1030,13 @@ async def submit_task(assignment_id: str, student_id: str, answers: list[dict]) 
         raise ValueError("这份作业需要提交附件，不能在线作答。")
     if not quiz:
         raise ValueError("题目已丢失，请联系老师重新布置。")
+    previous = _submission_of(assignment_id, student_id) or {}
+    if int(previous.get("attempts") or 0) >= MAX_ATTEMPTS:
+        raise ValueError(f"这份作业最多提交 {MAX_ATTEMPTS} 次，已经用完了。")
     result = await quiz_service.grade(quiz, answers, track=False)
     submission_id = _submission_id(assignment_id, student_id)
     async with _lock_for(submission_id):
-        existing = _submission_of(assignment_id, student_id) or {}
+        existing = _submission_of(assignment_id, student_id) or previous
         submission = {
             "id": submission_id,
             "assignment_id": assignment_id,
@@ -1014,6 +1051,13 @@ async def submit_task(assignment_id: str, student_id: str, answers: list[dict]) 
             "attempts": int(existing.get("attempts") or 0) + 1,
             "submitted_at": time.time(),
             "created_at": existing.get("created_at") or time.time(),
+            # 教师复核过的分数与评语不能因为重交而消失
+            "teacher_score": existing.get("teacher_score"),
+            "teacher_feedback": existing.get("teacher_feedback", ""),
+            "teacher_note": existing.get("teacher_note", ""),
+            "graded_by": existing.get("graded_by", ""),
+            "graded_at": existing.get("graded_at"),
+            "regrade_history": existing.get("regrade_history") or [],
         }
         store.save_item("submissions", submission)
     bus.publish(f"teacher:{assignment['teacher_id']}", "submission_saved",
@@ -1024,7 +1068,7 @@ async def submit_task(assignment_id: str, student_id: str, answers: list[dict]) 
     bus.publish(f"assignment:{assignment_id}", "submission_saved",
                 student_id=student_id, student_name=student.get("name"))
     bus.publish(f"student:{student_id}", "tasks_changed", assignment_id=assignment_id)
-    payload = _student_result(result, bool(assignment.get("reveal", True)))
+    payload = _student_result(result, bool(assignment.get("reveal", False)))
     payload.update({
         "assignment_id": assignment_id,
         "title": assignment.get("title"),
@@ -1080,9 +1124,12 @@ async def submit_file(assignment_id: str, student_id: str, *, filename: str,
             "score": _number(ai.get("score")),
             "ai": ai,
             "ai_score": ai.get("score"),
-            "teacher_score": None,
-            "teacher_feedback": "",
-            "teacher_note": "",
+            "teacher_score": existing.get("teacher_score"),
+            "teacher_feedback": existing.get("teacher_feedback", ""),
+            "teacher_note": existing.get("teacher_note", ""),
+            "graded_by": existing.get("graded_by", ""),
+            "graded_at": existing.get("graded_at"),
+            "regrade_history": existing.get("regrade_history") or [],
             "needs_review": bool(ai.get("needs_review")),
             "attempts": int(existing.get("attempts") or 0) + 1,
             "submitted_at": time.time(),
@@ -1232,6 +1279,9 @@ def overview(teacher_id: str) -> dict:
     assignments = [item for item in store.list_items("assignments") if item.get("teacher_id") == teacher_id]
     submissions = [item for item in store.list_items("submissions") if item.get("class_id") in class_ids]
     class_map = {item["id"]: item.get("name") for item in classes}
+    teacher = store.load_item("teachers", teacher_id) or {"id": teacher_id}
+    # 组内普通教师能看班，但分数只对创建者 / 组长开放。
+    score_classes = {item["id"] for item in classes if perms.can_view_grades(teacher, item)}
 
     open_assignments = [item for item in assignments if _due_state(item) == "open"]
     assignment_map = {item["id"]: item for item in assignments}
@@ -1287,7 +1337,8 @@ def overview(teacher_id: str) -> dict:
             "student_name": submission.get("student_name"),
             "assignment_title": (assignment or {}).get("title"),
             "class_name": class_map.get(submission.get("class_id"), ""),
-            "score": _number(submission.get("score")),
+            "score": (_number(submission.get("score"))
+                      if submission.get("class_id") in score_classes else None),
             "submitted_at": submission.get("submitted_at"),
         })
 
@@ -1299,7 +1350,9 @@ def overview(teacher_id: str) -> dict:
             "open": len(open_assignments),
             "submissions": len(submissions),
             "submission_rate": submission_rate,
-            "avg_score": _avg([_number(item.get("score")) for item in submissions]),
+            "avg_score": (_avg([_number(item.get("score")) for item in submissions
+                                if item.get("class_id") in score_classes])
+                          if score_classes else None),
         },
         "upcoming": upcoming[:5],
         "weak_points": weak_points[:6],
@@ -1309,7 +1362,7 @@ def overview(teacher_id: str) -> dict:
 
 # ---------------------------------------------------------------- 导出
 def class_csv(teacher_id: str, class_id: str) -> tuple[str, bytes]:
-    klass = _own_class(teacher_id, class_id, write=False)
+    klass = _own_class_grades(teacher_id, class_id)
     students = _students_of(class_id)
     assignments = _assignments_of(class_id)
     submissions = [item for item in store.list_items("submissions") if item.get("class_id") == class_id]
@@ -1318,7 +1371,7 @@ def class_csv(teacher_id: str, class_id: str) -> tuple[str, bytes]:
 
 def class_report(teacher_id: str, class_id: str) -> tuple[str, str]:
     """整班成绩报告（HTML，含统计图表）。"""
-    klass = _own_class(teacher_id, class_id, write=False)
+    klass = _own_class_grades(teacher_id, class_id)
     teacher = store.load_item("teachers", teacher_id) or {}
     students = _students_of(class_id)
     assignments = _assignments_of(class_id)
@@ -1336,7 +1389,7 @@ def assignment_csv(teacher_id: str, assignment_id: str) -> tuple[str, bytes]:
     assignment = store.load_item("assignments", assignment_id)
     if not assignment:
         raise ValueError("作业不存在。")
-    klass = _own_class(teacher_id, assignment.get("class_id") or "", write=False)
+    klass = _own_class_grades(teacher_id, assignment.get("class_id") or "")
     students = _students_of(assignment["class_id"])
     submissions = _submissions_of(assignment_id)
     quiz = _load_quiz(assignment)
@@ -1350,7 +1403,7 @@ def student_report(teacher_id: str, student_id: str) -> tuple[str, str]:
     student = store.load_item("students", student_id)
     if not student:
         raise ValueError("学生不存在。")
-    klass = _own_class(teacher_id, student.get("class_id") or "", write=False)
+    klass = _own_class_grades(teacher_id, student.get("class_id") or "")
     teacher = store.load_item("teachers", teacher_id) or {}
     assignments = _assignments_of(klass["id"])
     submissions = [

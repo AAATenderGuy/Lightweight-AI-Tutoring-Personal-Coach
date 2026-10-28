@@ -17,6 +17,7 @@ from PIL import Image, ImageOps
 
 MAX_BYTES = 8 * 1024 * 1024  # 拍一张作业照片足够，再大只会更慢
 MAX_SIDE = 1600  # 长边上限：缩到这个尺寸后识别率基本不变，速度提升明显
+MAX_PIXELS = 40_000_000  # 约 40MP：先看文件头再解码，防「解压炸弹」把内存撑爆
 LOW_SCORE = 0.6  # 低于此分数：前端提示人工核对
 MIN_SCORE = 0.25  # 低于此分数：当作噪点丢弃
 
@@ -59,11 +60,28 @@ def _engine() -> Any:
 
 
 def prepare_image(data: bytes) -> Image.Image:
-    """解码、纠正 EXIF 方向、统一 RGB、限制长边。纯函数，方便单测。"""
+    """解码、纠正 EXIF 方向、统一 RGB、限制长边。纯函数，方便单测。
+
+    像素上限在**解码前**用文件头里的尺寸判断：`Image.open` 只读文件头，
+    恶意构造的超大图会在解码前被拒掉；JPEG 再借 `draft()` 在解码阶段
+    直接降采样，省一次全尺寸解码。
+    """
     try:
         image = Image.open(io.BytesIO(data))
-        image.load()
+        width, height = image.size
     except Exception as exc:  # noqa: BLE001 - PIL 抛的异常类型五花八门
+        raise OcrError("无法读取这张图片，请换 JPG / PNG 后重试。") from exc
+    if width * height > MAX_PIXELS:
+        raise OcrError("图片像素太大，请裁剪或降低分辨率后再上传。")
+    try:
+        long_side = max(width, height)
+        if (image.format or "").upper() == "JPEG" and long_side > MAX_SIDE:
+            scale = MAX_SIDE / long_side
+            image.draft("RGB", (max(1, int(width * scale)), max(1, int(height * scale))))
+        image.load()
+    except OcrError:
+        raise
+    except Exception as exc:  # noqa: BLE001
         raise OcrError("无法读取这张图片，请换 JPG / PNG 后重试。") from exc
     image = ImageOps.exif_transpose(image)
     if image.mode != "RGB":

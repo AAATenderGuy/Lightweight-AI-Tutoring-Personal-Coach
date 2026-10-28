@@ -104,7 +104,10 @@ const reportStudents = computed(() => {
   }))
 })
 
-const canReport = computed(() => Boolean(reportDetail.value))
+const canReport = computed(() => Boolean(reportDetail.value) && reportDetail.value.can_view_grades === true)
+
+/** 组内普通教师只能看班级结构，成绩由后端脱敏，前端同步隐藏相关入口。 */
+const canViewGrades = computed(() => classDetail.value?.can_view_grades === true)
 
 // ---------------------------------------------------------------- 实时
 const live = ref('off')
@@ -245,17 +248,24 @@ async function loadClasses() {
   }
 }
 
+// 快速切换班级 / 作业时，慢的旧请求回来会把新数据覆盖掉；用自增序号丢弃过期响应。
+let detailSeq = 0
+
 async function loadClassDetail(classId) {
   if (!classId) return
+  const seq = ++detailSeq
   loading.classDetail = true
   try {
-    classDetail.value = await api.teacher.classes.detail(classId)
+    const data = await api.teacher.classes.detail(classId)
+    if (seq !== detailSeq) return
+    classDetail.value = data
     refreshPresence()
   } catch (error) {
+    if (seq !== detailSeq) return
     classDetail.value = null
     notify(error.message, 'error')
   } finally {
-    loading.classDetail = false
+    if (seq === detailSeq) loading.classDetail = false
   }
 }
 
@@ -446,14 +456,18 @@ async function selectAssignment(assignmentId) {
 }
 
 async function loadAssignmentDetail(assignmentId) {
+  const seq = ++detailSeq
   loading.assignment = true
   try {
-    assignmentDetail.value = await api.teacher.assignments.detail(assignmentId)
+    const data = await api.teacher.assignments.detail(assignmentId)
+    if (seq !== detailSeq) return
+    assignmentDetail.value = data
   } catch (error) {
+    if (seq !== detailSeq) return
     assignmentDetail.value = null
     notify(error.message, 'error')
   } finally {
-    loading.assignment = false
+    if (seq === detailSeq) loading.assignment = false
   }
 }
 
@@ -593,6 +607,8 @@ function pct(value) {
 }
 
 function score(value) {
+  // 组员看不到分数时后端返回 null，这里直接显示占位符，避免误读成 0 分。
+  if (value === null || value === undefined || value === '') return '—'
   return Math.round((Number(value) || 0) * 100)
 }
 
@@ -685,7 +701,9 @@ function kindLabel(kind) {
             </div>
             <div class="stat">
               <div class="value">{{ pct(overview?.stats.submission_rate) }}</div>
-              <div class="label">总体提交率 · 平均 {{ score(overview?.stats.avg_score) }} 分</div>
+              <div class="label">
+                总体提交率<template v-if="overview?.stats.avg_score != null"> · 平均 {{ score(overview?.stats.avg_score) }} 分</template>
+              </div>
             </div>
           </div>
 
@@ -855,7 +873,7 @@ function kindLabel(kind) {
                     <Icon name="users" :size="13" />
                     导入名单
                   </button>
-                  <button class="btn btn-sm" type="button" @click="exportClass(classDetail.class.id)">
+                  <button v-if="canViewGrades" class="btn btn-sm" type="button" @click="exportClass(classDetail.class.id)">
                     <Icon name="download" :size="13" />
                     成绩报告
                   </button>
@@ -914,7 +932,7 @@ function kindLabel(kind) {
                   <div class="value">{{ classDetail.stats.submissions }}</div>
                   <div class="label">累计提交</div>
                 </div>
-                <div class="stat">
+                <div v-if="canViewGrades" class="stat">
                   <div class="value">{{ score(classDetail.stats.avg_score) }}<span class="unit">分</span></div>
                   <div class="label">班级平均分</div>
                 </div>
@@ -937,7 +955,8 @@ function kindLabel(kind) {
                   <thead>
                     <tr>
                       <th>姓名</th><th>学号</th><th>密码</th>
-                      <th class="num">已交</th><th class="num">平均分</th><th>最后登录</th><th></th>
+                      <th class="num">已交</th><th v-if="canViewGrades" class="num">平均分</th>
+                      <th>最后登录</th><th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -954,10 +973,17 @@ function kindLabel(kind) {
                         <span v-else class="chip">未设置</span>
                       </td>
                       <td class="num">{{ student.submitted }}</td>
-                      <td class="num">{{ student.submitted ? score(student.avg_score) : '—' }}</td>
+                      <td v-if="canViewGrades" class="num">{{ student.submitted ? score(student.avg_score) : '—' }}</td>
                       <td class="muted">{{ student.last_login ? formatTime(student.last_login) : '—' }}</td>
                       <td class="row-actions">
-                        <button class="btn btn-sm btn-ghost" type="button" @click="downloadReport(student)">报告</button>
+                        <button
+                          v-if="canViewGrades"
+                          class="btn btn-sm btn-ghost"
+                          type="button"
+                          @click="downloadReport(student)"
+                        >
+                          报告
+                        </button>
                         <template v-if="!classDetail.class.readonly">
                           <button class="btn btn-sm btn-ghost" type="button" @click="resetPassword(student)">重置密码</button>
                           <button class="btn btn-sm btn-ghost" type="button" @click="removeStudent(student)">移出</button>
@@ -998,7 +1024,7 @@ function kindLabel(kind) {
                     </div>
                     <div class="mini-bar">
                       <div class="bar"><span :style="{ width: pct(item.completion) }" /></div>
-                      <span class="small muted">{{ score(item.avg_score) }} 分</span>
+                      <span v-if="canViewGrades" class="small muted">{{ score(item.avg_score) }} 分</span>
                     </div>
                   </button>
                 </div>
@@ -1041,7 +1067,8 @@ function kindLabel(kind) {
               <div class="small muted">{{ item.class_name }} · {{ dueText(item) }}</div>
               <div class="bar" style="margin: 8px 0 5px"><span :style="{ width: pct(item.completion) }" /></div>
               <div class="small muted">
-                已交 {{ item.submitted }}/{{ item.total }} · 平均 {{ score(item.avg_score) }} 分
+                已交 {{ item.submitted }}/{{ item.total }}
+                <template v-if="item.avg_score != null"> · 平均 {{ score(item.avg_score) }} 分</template>
               </div>
             </button>
           </aside>
@@ -1091,6 +1118,9 @@ function kindLabel(kind) {
 
             <div v-if="!classes.length" class="empty-state"><p>还没有班级。</p></div>
             <div v-else-if="!reportDetail" class="panel-empty">正在读取班级数据…</div>
+            <div v-else-if="!canReport" class="panel-empty">
+              组内班级的成绩与报告只对班级创建者或组长开放。想导出自己班的成绩，请在上方切换到该班级。
+            </div>
             <template v-else>
               <div class="stat-grid stat-grid-3" style="margin-top: 14px">
                 <div class="stat">
