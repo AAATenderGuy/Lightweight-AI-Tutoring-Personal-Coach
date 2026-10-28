@@ -9,6 +9,7 @@ import AssignmentDialog from '../components/AssignmentDialog.vue'
 import AssignmentDetail from '../components/AssignmentDetail.vue'
 import RosterDialog from '../components/RosterDialog.vue'
 import GroupDialog from '../components/GroupDialog.vue'
+import QuestionBankDialog from '../components/QuestionBankDialog.vue'
 
 const tabs = [
   { id: 'overview', label: '概览' },
@@ -25,6 +26,7 @@ const overview = ref(null)
 const classes = ref([])
 const groups = ref([])
 const groupsOpen = ref(false)
+const bankOpen = ref(false)
 const assignments = ref([])
 const selectedClassId = ref('')
 const classDetail = ref(null)
@@ -514,6 +516,17 @@ function openCreateDialog() {
   dialog.open = true
 }
 
+async function publishAssignment(item) {
+  try {
+    await api.teacher.assignments.update(item.id, { draft: false })
+    notify(`《${item.title}》已发布，学生端现在可以看到了`)
+    await loadAssignments()
+    if (selectedClassId.value) await loadClassDetail(selectedClassId.value)
+  } catch (error) {
+    notify(error.message, 'error')
+  }
+}
+
 function openPractice(target, points = []) {
   if (!target?.id) return
   dialog.mode = 'practice'
@@ -654,6 +667,10 @@ function kindLabel(kind) {
           <span v-else-if="live === 'offline'" class="live-pill" title="正在重新连接">
             <span class="dot" />重连中
           </span>
+          <button class="btn btn-sm" type="button" @click="bankOpen = true">
+            <Icon name="book" :size="13" />
+            题库
+          </button>
           <button class="btn btn-sm" type="button" @click="groupsOpen = true">
             <Icon name="users" :size="13" />
             教研组
@@ -1063,12 +1080,20 @@ function kindLabel(kind) {
                 <strong>{{ item.title }}</strong>
                 <span class="chip">{{ kindLabel(item.kind) }}</span>
                 <span v-if="item.submission_mode === 'file'" class="chip accent">文件</span>
+                <span v-if="item.draft" class="chip accent">草稿</span>
               </div>
-              <div class="small muted">{{ item.class_name }} · {{ dueText(item) }}</div>
-              <div class="bar" style="margin: 8px 0 5px"><span :style="{ width: pct(item.completion) }" /></div>
-              <div class="small muted">
-                已交 {{ item.submitted }}/{{ item.total }}
-                <template v-if="item.avg_score != null"> · 平均 {{ score(item.avg_score) }} 分</template>
+              <div class="small muted">{{ item.class_name }} · {{ item.draft ? '未发布' : dueText(item) }}</div>
+              <template v-if="!item.draft">
+                <div class="bar" style="margin: 8px 0 5px"><span :style="{ width: pct(item.completion) }" /></div>
+                <div class="small muted">
+                  已交 {{ item.submitted }}/{{ item.total }}
+                  <template v-if="item.avg_score != null"> · 平均 {{ score(item.avg_score) }} 分</template>
+                </div>
+              </template>
+              <div v-else class="row" style="margin-top: 8px">
+                <button class="btn btn-sm btn-primary" type="button" @click.stop="publishAssignment(item)">
+                  发布到班级
+                </button>
               </div>
             </button>
           </aside>
@@ -1301,6 +1326,11 @@ function kindLabel(kind) {
       v-if="groupsOpen"
       @close="groupsOpen = false"
       @changed="refreshAll"
+    />
+
+    <QuestionBankDialog
+      v-if="bankOpen"
+      @close="bankOpen = false"
     />
   </section>
 </template>

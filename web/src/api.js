@@ -256,6 +256,21 @@ export const api = {
     audit: {
       list: (limit = 100) => request(`/api/teacher/audit?limit=${encodeURIComponent(limit)}`),
     },
+    questions: {
+      list: (params = {}) => {
+        const query = new URLSearchParams()
+        if (params.topic) query.set('topic', params.topic)
+        if (params.status) query.set('status', params.status)
+        if (params.keyword) query.set('keyword', params.keyword)
+        const suffix = query.toString() ? `?${query}` : ''
+        return request(`/api/teacher/questions${suffix}`)
+      },
+      create: (payload) => request('/api/teacher/questions', { method: 'POST', body: payload }),
+      generate: (payload) => request('/api/teacher/questions/generate', { method: 'POST', body: payload }),
+      approve: (ids) => request('/api/teacher/questions/approve', { method: 'POST', body: { ids } }),
+      update: (id, payload) => request(`/api/teacher/questions/${id}`, { method: 'PUT', body: payload }),
+      remove: (id) => request(`/api/teacher/questions/${id}`, { method: 'DELETE' }),
+    },
     submissions: {
       get: (id) => request(`/api/teacher/submissions/${id}`),
       grade: (id, payload) => request(`/api/teacher/submissions/${id}`, { method: 'PATCH', body: payload }),

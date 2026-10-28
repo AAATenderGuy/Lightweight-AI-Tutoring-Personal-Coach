@@ -15,6 +15,7 @@ from statistics import mean
 from .. import store
 from . import grading as grading_service
 from . import identity, perms, reports, uploads
+from . import questions as questions_service
 from . import quiz as quiz_service
 from . import roster as roster_service
 from .events import bus
@@ -132,6 +133,8 @@ def _avg(values: list[float]) -> float:
 
 
 def _due_state(assignment: dict) -> str:
+    if assignment.get("draft"):
+        return "draft"
     due = _number(assignment.get("due_at"))
     if assignment.get("closed"):
         return "closed"
@@ -173,6 +176,7 @@ def _assignment_public(assignment: dict, *, class_name: str = "", students: list
         "due_at": _number(assignment.get("due_at")),
         "reveal": bool(assignment.get("reveal", False)),
         "closed": bool(assignment.get("closed")),
+        "draft": bool(assignment.get("draft")),
         "state": _due_state(assignment),
         "created_at": assignment.get("created_at"),
         **progress,
@@ -466,6 +470,8 @@ def student_tasks(student_id: str) -> dict:
     teacher = store.load_item("teachers", klass.get("teacher_id") or "")
     tasks = []
     for assignment in _assignments_of(klass["id"]):
+        if assignment.get("draft"):
+            continue  # 草稿只给老师看，学生端不出现
         submission = _submission_of(assignment["id"], student_id)
         state = _due_state(assignment)
         if submission:
@@ -649,7 +655,9 @@ async def create_assignment(teacher_id: str, *, class_id: str, title: str, topic
                             kind: str = "homework", submission_mode: str = "quiz",
                             count: int = 4, difficulty: str = "medium",
                             due_at: float = 0.0, instructions: str = "",
-                            rubric: str = "", reveal: bool = False) -> dict:
+                            rubric: str = "", reveal: bool = False,
+                            question_ids: list[str] | None = None,
+                            draft: bool = False) -> dict:
     klass = _own_class(teacher_id, class_id)
     topic = _text(topic, 120)
     if not topic:
@@ -661,6 +669,13 @@ async def create_assignment(teacher_id: str, *, class_id: str, title: str, topic
         quiz_id = ""
         question_count = 0
         default_title = f"{topic} · 作业"
+    elif question_ids:
+        # 题库选题组卷：题目整体拷贝进 quiz，之后改题库不影响这份作业
+        quiz = questions_service.assemble_quiz(
+            teacher_id, question_ids, title=_text(title, 80), topic=topic)
+        quiz_id = quiz["id"]
+        question_count = len(quiz.get("questions") or [])
+        default_title = quiz.get("title") or f"{topic} · 作业"
     else:
         quiz = await quiz_service.generate(topic=topic, material_ids=[], count=count, difficulty=difficulty)
         stored = store.load_item("quizzes", quiz["id"]) or {}
@@ -683,6 +698,7 @@ async def create_assignment(teacher_id: str, *, class_id: str, title: str, topic
         "due_at": max(0.0, float(due_at or 0)),
         "reveal": bool(reveal),
         "closed": False,
+        "draft": bool(draft),
         "created_at": time.time(),
     })
     bus.publish(f"class:{class_id}", "assignment_created",
@@ -695,7 +711,9 @@ async def create_assignment(teacher_id: str, *, class_id: str, title: str, topic
 def update_assignment(teacher_id: str, assignment_id: str, *, title: str | None = None,
                       instructions: str | None = None, rubric: str | None = None,
                       due_at: float | None = None,
-                      reveal: bool | None = None, closed: bool | None = None) -> dict:
+                      reveal: bool | None = None, closed: bool | None = None,
+                      draft: bool | None = None,
+                      question_ids: list[str] | None = None) -> dict:
     assignment = store.load_item("assignments", assignment_id)
     if not assignment or assignment.get("teacher_id") != teacher_id:
         raise ValueError("作业不存在。")
@@ -711,6 +729,22 @@ def update_assignment(teacher_id: str, assignment_id: str, *, title: str | None 
         assignment["reveal"] = bool(reveal)
     if closed is not None:
         assignment["closed"] = bool(closed)
+    if draft is not None:
+        assignment["draft"] = bool(draft)
+    if question_ids is not None:
+        if assignment.get("submission_mode") != "quiz":
+            raise ValueError("文件作业没有题目可换。")
+        if _submissions_of(assignment_id):
+            # 有学生交过就不能换题了，否则分数和题目对不上
+            raise ValueError("已经有学生提交，不能更换题目。想改题请新建一份作业。")
+        quiz = questions_service.assemble_quiz(
+            teacher_id, question_ids,
+            title=assignment.get("title") or "", topic=assignment.get("topic") or "")
+        old_quiz = assignment.get("quiz_id")
+        assignment["quiz_id"] = quiz["id"]
+        assignment["question_count"] = len(quiz.get("questions") or [])
+        if old_quiz:
+            store.delete_item("quizzes", old_quiz)
     store.save_item("assignments", assignment)
     bus.publish(f"class:{assignment['class_id']}", "assignment_updated",
                 assignment_id=assignment["id"], title=assignment.get("title"))

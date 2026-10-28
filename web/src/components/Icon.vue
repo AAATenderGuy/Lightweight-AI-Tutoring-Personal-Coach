@@ -92,6 +92,11 @@ defineProps({
       <path d="M16 5.6a3 3 0 0 1 0 5.8" />
       <path d="M17.5 15.2c1.8.6 3 2.3 3 4.3" />
     </template>
+    <template v-else-if="name === 'book'">
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5H6.5A2.5 2.5 0 0 0 4 21z" />
+      <path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20" />
+      <path d="M9 7.5h7" />
+    </template>
     <template v-else-if="name === 'board'">
       <rect x="3" y="4" width="18" height="13" rx="1.5" />
       <path d="M7 13.5v-3M11 13.5V8M15 13.5v-2M12 17v3" />

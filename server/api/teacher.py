@@ -18,12 +18,16 @@ from ..schemas import (
     GroupUpdate,
     PasswordChange,
     PracticeRequest,
+    QuestionApprove,
+    QuestionCreate,
+    QuestionGenerate,
+    QuestionUpdate,
     StudentPasswordReset,
     SubmissionGrade,
     TeacherLogin,
     TeacherRegister,
 )
-from ..services import audit, auth, classes, groups, perms, roster, uploads
+from ..services import audit, auth, classes, groups, perms, questions, roster, uploads
 from .limits import rate_limit
 
 router = APIRouter(tags=["teacher"])
@@ -329,6 +333,66 @@ async def class_report(request: Request, class_id: str) -> Response:
     return _file(content.encode("utf-8"), "text/html; charset=utf-8", filename)
 
 
+# ---------------------------------------------------------------- 题库
+@router.get("/teacher/questions")
+async def list_questions(request: Request, topic: str = "", status: str = "",
+                         keyword: str = "") -> dict:
+    teacher = current_teacher(request)
+    return questions.list_questions(teacher["id"], topic=topic, status=status, keyword=keyword)
+
+
+@router.post("/teacher/questions")
+async def create_question(request: Request, payload: QuestionCreate) -> dict:
+    teacher = current_teacher(request)
+    try:
+        question = questions.create_question(teacher["id"], payload.model_dump())
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return {"question": question}
+
+
+@router.post("/teacher/questions/generate", dependencies=[rate_limit("teacher-generate", 40)])
+async def generate_questions(request: Request, payload: QuestionGenerate) -> dict:
+    teacher = current_teacher(request)
+    try:
+        result = await questions.generate_drafts(
+            teacher["id"], topic=payload.topic, count=payload.count,
+            difficulty=payload.difficulty,
+        )
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    except LLMError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    return result
+
+
+@router.post("/teacher/questions/approve")
+async def approve_questions(request: Request, payload: QuestionApprove) -> dict:
+    teacher = current_teacher(request)
+    return questions.approve(teacher["id"], payload.ids)
+
+
+@router.put("/teacher/questions/{question_id}")
+async def update_question(request: Request, question_id: str, payload: QuestionUpdate) -> dict:
+    teacher = current_teacher(request)
+    try:
+        question = questions.update_question(
+            teacher["id"], question_id, payload.model_dump(exclude_none=True))
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return {"question": question}
+
+
+@router.delete("/teacher/questions/{question_id}")
+async def delete_question(request: Request, question_id: str) -> dict:
+    teacher = current_teacher(request)
+    try:
+        questions.delete_question(teacher["id"], question_id)
+    except ValueError as exc:
+        raise _bad(exc) from exc
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------- 作业
 @router.get("/teacher/assignments")
 async def list_assignments(request: Request, class_id: str = "") -> dict:
@@ -346,6 +410,7 @@ async def create_assignment(request: Request, payload: AssignmentCreate) -> dict
             count=payload.count, difficulty=payload.difficulty,
             due_at=payload.due_at, instructions=payload.instructions,
             rubric=payload.rubric, reveal=payload.reveal,
+            question_ids=payload.question_ids or None, draft=payload.draft,
         )
     except ValueError as exc:
         raise _bad(exc) from exc
@@ -374,7 +439,7 @@ async def update_assignment(request: Request, assignment_id: str, payload: Assig
         return {"assignment": classes.update_assignment(
             teacher["id"], assignment_id, title=payload.title, instructions=payload.instructions,
             rubric=payload.rubric, due_at=payload.due_at, reveal=payload.reveal,
-            closed=payload.closed,
+            closed=payload.closed, draft=payload.draft, question_ids=payload.question_ids,
         )}
     except ValueError as exc:
         raise _bad(exc) from exc

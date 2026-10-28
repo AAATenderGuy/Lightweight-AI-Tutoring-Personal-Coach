@@ -144,6 +144,8 @@ class AssignmentCreate(BaseModel):
     instructions: str = Field(default="", max_length=300)
     rubric: str = Field(default="", max_length=1500)
     reveal: bool = False
+    question_ids: list[str] = Field(default_factory=list, max_length=30)
+    draft: bool = False
 
 
 class AssignmentUpdate(BaseModel):
@@ -153,6 +155,43 @@ class AssignmentUpdate(BaseModel):
     due_at: float | None = Field(default=None, ge=0)
     reveal: bool | None = None
     closed: bool | None = None
+    draft: bool | None = None
+    question_ids: list[str] | None = Field(default=None, max_length=30)
+
+
+class QuestionCreate(BaseModel):
+    type: Literal["single", "short"] | None = None
+    question: str = Field(min_length=1, max_length=400)
+    options: list[str] = Field(default_factory=list, max_length=6)
+    answer_index: int = Field(default=0, ge=0)
+    answer: str = Field(default="", max_length=600)
+    explanation: str = Field(default="", max_length=400)
+    topic: str = Field(default="", max_length=60)
+    knowledge_point: str = Field(default="", max_length=60)
+    difficulty: Literal["easy", "medium", "hard"] = "medium"
+
+
+class QuestionUpdate(BaseModel):
+    type: Literal["single", "short"] | None = None
+    question: str | None = Field(default=None, max_length=400)
+    options: list[str] | None = Field(default=None, max_length=6)
+    answer_index: int | None = Field(default=None, ge=0)
+    answer: str | None = Field(default=None, max_length=600)
+    explanation: str | None = Field(default=None, max_length=400)
+    topic: str | None = Field(default=None, max_length=60)
+    knowledge_point: str | None = Field(default=None, max_length=60)
+    difficulty: Literal["easy", "medium", "hard"] | None = None
+    status: Literal["draft", "approved"] | None = None
+
+
+class QuestionGenerate(BaseModel):
+    topic: str = Field(min_length=1, max_length=120)
+    count: int = Field(default=4, ge=1, le=10)
+    difficulty: Literal["easy", "medium", "hard"] = "medium"
+
+
+class QuestionApprove(BaseModel):
+    ids: list[str] = Field(min_length=1, max_length=200)
 
 
 class PracticeRequest(BaseModel):
