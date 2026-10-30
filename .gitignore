@@ -5,6 +5,11 @@ __pycache__/
 .ruff_cache/
 data/
 .env
+# 部署产物：由 deploy.sh 生成，含真实域名与账号，不进仓库
+deploy/Caddyfile
+deploy/credentials.txt
+docker-compose.https.yml
+backups/
 web/node_modules/
 npm-debug.log*
 .DS_Store

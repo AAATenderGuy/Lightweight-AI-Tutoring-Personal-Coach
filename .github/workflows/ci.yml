@@ -80,3 +80,58 @@ jobs:
           done
           curl -fsS http://127.0.0.1:8000/ | grep -q '<div id="app">'
           docker rm -f edu >/dev/null
+
+  # 真正跑一遍 deploy.sh：起容器 → 健康检查 → 改密码 → status/backup → down。
+  # 镜像由上一个 job 构建并写入 gha 缓存，这里用 --no-build 直接复用，不再冷构建一次。
+  deploy:
+    name: deploy.sh lifecycle
+    needs: docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image (cached)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: edu:1.5.0
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: deploy.sh up (--no-build)
+        run: |
+          bash -n deploy.sh
+          EDU_NO_BUILD=1 bash deploy.sh -y --port 8123 --key sk-ci-placeholder | tee /tmp/deploy.log
+          grep -q '部署完成' /tmp/deploy.log
+          curl -fsS --retry 10 --retry-connrefused --retry-delay 2 http://127.0.0.1:8123/api/health
+
+      - name: demo account was hardened
+        run: |
+          test -s deploy/credentials.txt
+          pass="$(sed -n 's/^password=//p' deploy/credentials.txt)"
+          test "${#pass}" -eq 16
+          login() {
+            curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:8123/api/teacher/login \
+              -H 'Content-Type: application/json' -d "{\"username\":\"demo\",\"password\":\"$1\"}"
+          }
+          test "$(login "$pass")" = "200"
+          test "$(login demo1234)" != "200"
+
+      - name: status + backup
+        run: |
+          bash deploy.sh status
+          bash deploy.sh backup
+          newest="$(ls -1t backups/edu-data-*.tgz | head -n 1)"
+          test -s "$newest"
+          tar -tzf "$newest" > /tmp/backup.list
+          grep -q 'edu.sqlite3' /tmp/backup.list
+
+      - name: down keeps the data volume
+        run: |
+          bash deploy.sh down
+          ! docker ps --format '{{.Names}}' | grep -qx edu
+          docker volume inspect edu-data >/dev/null

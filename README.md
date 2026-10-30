@@ -155,6 +155,45 @@ cd edu
 # macOS/Linux: .venv/bin/python -m server.main --port 8000
 ```
 
+### 部署到云服务器
+
+有两条路，按需要选：
+
+**A. Docker（推荐，一条命令）**
+
+服务器上只要一条命令，脚本会装 Docker、生成 `.env`、构建镜像、起服务、等健康检查，
+并把默认演示账号的密码改成随机值：
+
+```bash
+git clone <仓库> edu && cd edu
+bash deploy.sh                      # 首次
+bash deploy.sh --domain edu.example.com --email you@example.com   # 需要 HTTPS 时
+```
+
+| 命令 | 作用 |
+| --- | --- |
+| `bash deploy.sh` | 安装 Docker → 写 `.env` → `up -d --build` → 健康检查 |
+| `bash deploy.sh status` | 容器状态 + `/api/health` + 内存占用 |
+| `bash deploy.sh logs` | 跟踪日志 |
+| `bash deploy.sh backup` | 把数据卷打包到 `backups/`，保留最近 7 份 |
+| `bash deploy.sh update` | `git pull` 后重建 |
+| `bash deploy.sh down` | 停止（数据保留；加 `--purge` 才删卷） |
+
+**B. 裸机 systemd + Nginx**
+
+仓库里已带 `deploy/edu.service` 与 `deploy/nginx.conf.example`，适合不用容器的机器：
+装 Python 3.10+、`pip install -r requirements.txt`、把 service 文件放进
+`/etc/systemd/system/`、Nginx 反代到 `127.0.0.1:8000` 即可。注意 SSE 要在反代里关缓冲。
+
+部署要点（两种方式都适用）：
+
+- **机型**：2 核 4 GB 起步。拍题 OCR（onnxruntime）与向量检索（fastembed）同时加载约 700 MB，
+  2 GB 机器请加 `--mode bm25` 并删掉 `requirements.txt` 里的 OCR/向量依赖。
+- **不要开多 worker**：SSE 事件总线、在线名单、限流都在进程内存里，多进程会串台。
+- **Key 只走环境变量 / `.env`**：容器不读宿主机 `data/settings.json`。
+- **HTTPS**：大陆地域绑域名要先 ICP 备案；只想快速演示可用 `IP:8000` 直连。
+- **首次构建 8–15 分钟**（`npm ci` + `vite build` + `pip install onnxruntime`），之后重建约 1–2 分钟。
+
 ## 教师工作台使用指南
 
 ### 登录与账号
@@ -729,13 +768,23 @@ v1.5 起学生默认用学号 + 密码登录。之前用邀请码加入的档案
 .venv\Scripts\python scripts/api_audit.py http://127.0.0.1:8000
 ```
 
-`pytest` 覆盖：学号登录与令牌鉴权、名单导入/重置密码/多班同号、CSV 公式转义、判分注入降级、文件作业提交/下载/复核/重交、教师会话落盘、上传限额、路径穿越、SQLite 迁移与回退、拍题 OCR（图片预处理与真实推理）、教研组权限矩阵（只读共享 / 越权拒绝）、审计落点与按角色裁剪可见范围、混合检索（RRF 融合、向量不可用时的降级、索引缓存与重建）、题库（录入 / AI 草稿审核 / 选题组卷 / 草稿作业对学生不可见 / 提交后换题锁定 / 题目按教师隔离）、学习事件流（测验与作业落事件、掌握度从事件聚合、教师改分取最新、学生时间线、重置清空、旧进度档回退），以及提交安全边界（部署配置需登录、默认不公布答案、最多 3 次重交、教师复核分不被重交冲掉、答题记录不能靠姓名学号找回）。当前 **109 个用例全部通过**。
+`pytest` 覆盖：学号登录与令牌鉴权、名单导入/重置密码/多班同号、CSV 公式转义、判分注入降级、文件作业提交/下载/复核/重交、教师会话落盘、上传限额、路径穿越、SQLite 迁移与回退、拍题 OCR（图片预处理与真实推理）、教研组权限矩阵（只读共享 / 越权拒绝）、审计落点与按角色裁剪可见范围、混合检索（RRF 融合、向量不可用时的降级、索引缓存与重建）、题库（录入 / AI 草稿审核 / 选题组卷 / 草稿作业对学生不可见 / 提交后换题锁定 / 题目按教师隔离）、学习事件流（测验与作业落事件、掌握度从事件聚合、教师改分取最新、学生时间线、重置清空、旧进度档回退），以及提交安全边界（部署配置需登录、默认不公布答案、最多 3 次重交、教师复核分不被重交冲掉、答题记录不能靠姓名学号找回）。当前 **109 个用例全部通过**；另有 9 个 `deploy.sh` 用例只在 Linux / CI 上跑，Windows 开发机会自动跳过。
 
 `teacher_smoke.py` 会依次跑通：教师登录 → 建班 → 两名学生加入 → 布置随堂测验 → 学生作答提交 → 教师查看统计（提交率、未交名单、每题错误率、知识点）→ 文件作业提交 / AI 初评 / 下载 / 复核 → 薄弱点补练 → 导出班级成绩报告 / 班级 CSV / 作业 CSV / 学生报告 → 概览。当前结果全部通过。
 
 `realtime_smoke.py` 会自建一个临时班级并**同时订阅两条 SSE**，验证：学生加入 → 教师流收到 `student_joined`；在线名单包含该学生；老师布置作业 → 学生流收到 `assignment_created`；学生交卷 → 教师流收到 `submission_saved` 且作业详情立即变为已交。跑完自动删除临时班级。
 
 `api_audit.py` 会把 `web/src` 里的接口调用与后端 OpenAPI 路径逐一比对，当前 **58 个调用、0 个缺失**；如果以后改了路由忘了改前端，会直接列出来。
+
+CI 分三个 job（[.github/workflows/ci.yml](.github/workflows/ci.yml)）：
+
+| job | 做什么 |
+| --- | --- |
+| `python` | `ruff check` + `pytest`（含 `deploy.sh` 的 9 个用例） |
+| `docker` | buildx 构建镜像 → 起容器 → `/api/health` → 首页含 `<div id="app">` |
+| `deploy` | 用 `deploy.sh --no-build` 真起一遍：健康检查 → 校验 demo 密码已被加固且旧密码失效 → `status` / `backup`（解包确认有 `edu.sqlite3`）→ `down` 后容器消失、数据卷仍在 |
+
+也就是说**部署脚本本身有回归护栏**：改了 `deploy.sh` 却把启动流程改坏，CI 会直接红。
 
 开发过程中已验证：
 

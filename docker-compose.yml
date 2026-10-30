@@ -19,6 +19,11 @@ services:
       EDU_BASE_URL: "${EDU_BASE_URL:-}"
       EDU_MODEL: "${EDU_MODEL:-}"
       EDU_API_KEY: "${EDU_API_KEY:-}"
+      # 检索模式：hybrid（默认）/ bm25 / dense / hybrid_rerank。
+      # 2G 内存的机器用 bm25，可以省掉向量模型那 300 MB 常驻。
+      EDU_RETRIEVAL_MODE: "${EDU_RETRIEVAL_MODE:-hybrid}"
+      # 国内下载 bge 模型慢，默认走镜像；有外网直连可删掉这行。
+      HF_ENDPOINT: "${HF_ENDPOINT:-https://hf-mirror.com}"
     volumes:
       # 命名卷而不是 ./data 绑定挂载：容器的 edu 用户（uid 10001）对宿主机目录
       # 通常没有写权限，绑定挂载会直接启动失败。要导出数据用下面「备份」命令。
