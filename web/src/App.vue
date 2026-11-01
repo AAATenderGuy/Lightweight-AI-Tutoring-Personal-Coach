@@ -45,6 +45,32 @@ watch(
   },
   { immediate: true },
 )
+
+/**
+ * 侧栏切页：以点击位置为圆心做 clip-path 圆形扩散。
+ * 优先用原生 View Transitions API；浏览器不支持就直接换页，不加 polyfill。
+ */
+function go(id, event) {
+  if (id === state.view) return
+  if (typeof document.startViewTransition !== 'function') {
+    switchView(id)
+    return
+  }
+  const x = event?.clientX ?? window.innerWidth / 2
+  const y = event?.clientY ?? window.innerHeight / 2
+  const radius = Math.hypot(
+    Math.max(x, window.innerWidth - x),
+    Math.max(y, window.innerHeight - y),
+  )
+  const root = document.documentElement
+  root.style.setProperty('--vt-x', `${x}px`)
+  root.style.setProperty('--vt-y', `${y}px`)
+  root.style.setProperty('--vt-r', `${Math.ceil(radius)}px`)
+  document.startViewTransition(async () => {
+    switchView(id)
+    await nextTick()
+  })
+}
 </script>
 
 <template>
@@ -66,7 +92,7 @@ watch(
           :class="{ active: state.view === item.id }"
           type="button"
           :aria-current="state.view === item.id ? 'page' : undefined"
-          @click="switchView(item.id)"
+          @click="go(item.id, $event)"
         >
           <Icon :name="item.icon" :size="16" />
           {{ item.label }}

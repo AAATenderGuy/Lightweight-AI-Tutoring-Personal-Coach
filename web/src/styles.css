@@ -3726,3 +3726,37 @@ a:hover {
 .pref-row:hover {
   color: var(--ink);
 }
+
+/* ---------------------------------------------------------------- 圆形扩散转场 */
+/* 旧快照压在下面不动，新快照以点击位置为圆心把圆撑开。 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+  animation: view-circle-reveal var(--dur-3) var(--ease) both;
+}
+
+@keyframes view-circle-reveal {
+  from {
+    clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+  to {
+    clip-path: circle(var(--vt-r, 150vmax) at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+}
+
+/* 关闭动效时直接换页，不做扩散 */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
