@@ -17,6 +17,29 @@
   --radius-sm: 8px;
   --shadow: 0 1px 2px rgba(23, 23, 26, 0.05);
   --font: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+
+  /* ---- 层级令牌：间距刻度 ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* ---- 层级令牌：边框 ---- */
+  --border-card: 1px solid var(--border);
+  --border-focus: 2px solid var(--ink);
+
+  /* ---- 层级令牌：文字 ---- */
+  --text-title: 600;
+  --text-body: 400;
+  --text-muted: var(--ink-3);
+
+  /* ---- 动效：统一时长与缓动 ---- */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --dur-1: 150ms;
+  --dur-2: 200ms;
+  --dur-3: 260ms;
 }
 
 * {
@@ -69,7 +92,7 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 2px solid var(--ink);
+  outline: var(--border-focus);
   outline-offset: 2px;
 }
 
@@ -122,19 +145,19 @@ a:hover {
   color: #fff;
   display: grid;
   place-items: center;
-  font-weight: 650;
+  font-weight: var(--text-title);
   font-size: 15px;
 }
 
 .brand-name {
-  font-weight: 650;
+  font-weight: var(--text-title);
   font-size: 15px;
   line-height: 1.2;
 }
 
 .brand-sub {
   font-size: 11.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
   margin-top: 1px;
 }
 
@@ -167,7 +190,7 @@ a:hover {
   background: #fff;
   border-color: var(--border);
   color: var(--ink);
-  font-weight: 600;
+  font-weight: var(--text-title);
   box-shadow: var(--shadow);
 }
 
@@ -179,7 +202,7 @@ a:hover {
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 0 2px;
 }
 
@@ -188,7 +211,7 @@ a:hover {
   align-items: center;
   gap: 7px;
   padding: 7px 10px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 999px;
   background: #fff;
   font-size: 11.5px;
@@ -219,7 +242,7 @@ a:hover {
   align-items: center;
   gap: 6px;
   font-size: 11.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -262,7 +285,7 @@ a:hover {
 .page-head h1 {
   margin: 0 0 4px;
   font-size: 20px;
-  font-weight: 650;
+  font-weight: var(--text-title);
   letter-spacing: -0.01em;
 }
 
@@ -330,7 +353,7 @@ a:hover {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
-  font-weight: 600;
+  font-weight: var(--text-title);
 }
 
 .btn-accent:hover:not(:disabled) {
@@ -453,7 +476,7 @@ a:hover {
   align-items: center;
   gap: 5px;
   padding: 3px 9px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 999px;
   background: #fff;
   font-size: 11.5px;
@@ -468,7 +491,7 @@ a:hover {
 }
 
 .muted {
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .small {
@@ -518,10 +541,10 @@ a:hover {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-3);
   min-height: 430px;
   padding: 32px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 14px;
   background: #fff;
   text-align: center;
@@ -529,7 +552,7 @@ a:hover {
 
 .loading-stage strong {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: var(--text-title);
 }
 
 /* ---------------------------------------------------------------- 对话 */
@@ -544,7 +567,7 @@ a:hover {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
   padding: 24px 32px 16px;
   border-bottom: 1px solid var(--border);
@@ -553,7 +576,7 @@ a:hover {
 .chat-head h1 {
   margin: 0 0 4px;
   font-size: 20px;
-  font-weight: 650;
+  font-weight: var(--text-title);
   letter-spacing: -0.01em;
 }
 
@@ -566,7 +589,7 @@ a:hover {
 .chat-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .chat-scroll {
@@ -588,7 +611,7 @@ a:hover {
   align-self: flex-end;
   max-width: 82%;
   padding: 10px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 14px 14px 4px 14px;
   background: var(--surface-soft);
   font-size: 14.5px;
@@ -605,9 +628,9 @@ a:hover {
 .msg-role {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 11.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .msg-error {
@@ -657,12 +680,12 @@ a:hover {
 .sources {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   margin-top: 12px;
 }
 
 .source-card {
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 8px;
   background: #fff;
   padding: 8px 10px;
@@ -682,7 +705,7 @@ a:hover {
 }
 
 .source-title {
-  font-weight: 600;
+  font-weight: var(--text-title);
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -744,7 +767,7 @@ a:hover {
 
 .composer-hint {
   font-size: 11.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .empty {
@@ -755,7 +778,7 @@ a:hover {
 .empty h2 {
   margin: 0 0 8px;
   font-size: 27px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   letter-spacing: -0.02em;
 }
 
@@ -774,7 +797,7 @@ a:hover {
 
 .suggestion {
   padding: 13px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 10px;
   background: #fff;
   color: var(--ink-2);
@@ -784,7 +807,7 @@ a:hover {
 }
 
 .suggestion:hover {
-  border-color: var(--ink-3);
+  border-color: var(--text-muted);
   color: var(--ink);
 }
 
@@ -810,7 +833,7 @@ a:hover {
 .scope-item {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 7px 8px;
   border-radius: 6px;
   font-size: 12.5px;
@@ -830,7 +853,7 @@ a:hover {
 .scope-empty {
   padding: 10px;
   font-size: 12px;
-  color: var(--ink-3);
+  color: var(--text-muted);
   line-height: 1.6;
 }
 
@@ -898,7 +921,7 @@ a:hover {
 
 .prose code {
   padding: 1px 5px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 4px;
   background: var(--surface-soft);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -908,7 +931,7 @@ a:hover {
 .prose pre {
   margin: 12px 0;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius-sm);
   background: #f7f7f3;
   overflow-x: auto;
@@ -931,13 +954,13 @@ a:hover {
 .prose th,
 .prose td {
   padding: 7px 10px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   text-align: left;
 }
 
 .prose th {
   background: var(--surface-soft);
-  font-weight: 600;
+  font-weight: var(--text-title);
 }
 
 .prose hr {
@@ -961,7 +984,7 @@ a:hover {
 .class-toolbar {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   padding: 18px 32px;
   border-bottom: 1px solid var(--border);
@@ -989,7 +1012,7 @@ a:hover {
 
 .class-toolbar .actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   padding-bottom: 1px;
 }
 
@@ -1016,10 +1039,10 @@ a:hover {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   min-height: 430px;
   padding: 34px 38px 30px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 14px;
   background: #fff;
   box-shadow: var(--shadow);
@@ -1032,11 +1055,11 @@ a:hover {
 .stage-kicker {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 11.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .stage h2 {
@@ -1044,7 +1067,7 @@ a:hover {
   font-size: 29px;
   line-height: 1.3;
   letter-spacing: -0.02em;
-  font-weight: 650;
+  font-weight: var(--text-title);
 }
 
 .stage.cover h2 {
@@ -1067,7 +1090,7 @@ a:hover {
 }
 
 .stage li::marker {
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .stage-prompt {
@@ -1083,7 +1106,7 @@ a:hover {
 
 .stage-notes {
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius-sm);
   background: var(--surface-soft);
   color: var(--ink-2);
@@ -1096,7 +1119,7 @@ a:hover {
   margin-bottom: 4px;
   font-size: 11px;
   letter-spacing: 0.06em;
-  color: var(--ink-3);
+  color: var(--text-muted);
   text-transform: uppercase;
 }
 
@@ -1104,7 +1127,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   margin-top: 16px;
 }
 
@@ -1118,7 +1141,7 @@ a:hover {
   align-items: center;
   gap: 10px;
   font-size: 12.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .dots {
@@ -1146,7 +1169,7 @@ a:hover {
 .quiz-scene {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .quiz-q {
@@ -1154,7 +1177,7 @@ a:hover {
   flex-direction: column;
   gap: 9px;
   padding: 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 10px;
 }
 
@@ -1179,7 +1202,7 @@ a:hover {
   gap: 9px;
   width: 100%;
   padding: 8px 11px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 7px;
   background: #fff;
   color: var(--ink-2);
@@ -1189,12 +1212,12 @@ a:hover {
 }
 
 .quiz-option:hover {
-  border-color: var(--ink-3);
+  border-color: var(--text-muted);
 }
 
 .quiz-option .key {
   flex: none;
-  color: var(--ink-3);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1218,7 +1241,7 @@ a:hover {
 
 .quiz-explain {
   padding: 9px 11px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 7px;
   background: #fbfbf8;
   color: var(--ink-2);
@@ -1240,11 +1263,11 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 13px 16px;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--text-title);
 }
 
 .side-head-tabs {
@@ -1267,7 +1290,7 @@ a:hover {
   min-height: 22px;
   padding: 0 16px 9px;
   border-bottom: 1px solid var(--border);
-  color: var(--ink-3);
+  color: var(--text-muted);
   font-size: 11.5px;
   white-space: nowrap;
   overflow: hidden;
@@ -1282,7 +1305,7 @@ a:hover {
 .group-intro {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 2px 0 6px;
 }
 
@@ -1295,7 +1318,7 @@ a:hover {
 .participant {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .participant-text {
@@ -1306,13 +1329,13 @@ a:hover {
 
 .participant-text strong {
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   color: var(--ink);
 }
 
 .participant-text span {
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .avatar {
@@ -1325,7 +1348,7 @@ a:hover {
   background: var(--accent-soft);
   color: #1c5b41;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--text-title);
 }
 
 .avatar-sm {
@@ -1341,10 +1364,10 @@ a:hover {
 .group-system {
   align-self: center;
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 999px;
   background: var(--surface-soft);
-  color: var(--ink-3);
+  color: var(--text-muted);
   font-size: 11.5px;
 }
 
@@ -1355,12 +1378,12 @@ a:hover {
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .disc-empty {
   padding: 8px 2px;
-  color: var(--ink-3);
+  color: var(--text-muted);
   font-size: 12.5px;
   line-height: 1.7;
 }
@@ -1376,12 +1399,12 @@ a:hover {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .disc-bubble {
   padding: 8px 11px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 8px;
   background: #fff;
   color: var(--ink);
@@ -1413,7 +1436,7 @@ a:hover {
 .side-foot {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 12px;
   border-top: 1px solid var(--border);
 }
@@ -1432,7 +1455,7 @@ a:hover {
 .class-placeholder h2 {
   margin: 0 0 8px;
   font-size: 26px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   letter-spacing: -0.02em;
 }
 
@@ -1445,13 +1468,13 @@ a:hover {
 .feature-list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: var(--space-3);
   margin-top: 22px;
 }
 
 .feature {
   padding: 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 10px;
   background: #fff;
 }
@@ -1460,7 +1483,7 @@ a:hover {
   display: block;
   margin-bottom: 4px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--text-title);
 }
 
 .feature span {
@@ -1486,7 +1509,7 @@ a:hover {
 
 .dropzone:hover,
 .dropzone.drag {
-  border-color: var(--ink-3);
+  border-color: var(--text-muted);
   background: #fbfbf8;
 }
 
@@ -1498,12 +1521,12 @@ a:hover {
 .dropzone strong {
   font-size: 14px;
   color: var(--ink);
-  font-weight: 600;
+  font-weight: var(--text-title);
 }
 
 .dropzone span {
   font-size: 12.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .upload-list {
@@ -1525,7 +1548,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   margin-top: 20px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   overflow: hidden;
   background: #fff;
@@ -1548,12 +1571,12 @@ a:hover {
   width: 34px;
   height: 34px;
   flex: none;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 8px;
   background: var(--surface-soft);
   font-size: 10px;
   color: var(--ink-2);
-  font-weight: 600;
+  font-weight: var(--text-title);
   text-transform: uppercase;
 }
 
@@ -1564,7 +1587,7 @@ a:hover {
 
 .mat-title {
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1573,7 +1596,7 @@ a:hover {
 .mat-meta {
   margin-top: 2px;
   font-size: 11.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .mat-preview {
@@ -1587,19 +1610,19 @@ a:hover {
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .stat {
   padding: 15px 16px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
 
 .stat .value {
   font-size: 26px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
@@ -1607,7 +1630,7 @@ a:hover {
 .stat .label {
   margin-top: 2px;
   font-size: 12px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .section {
@@ -1618,14 +1641,14 @@ a:hover {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   margin-bottom: 10px;
 }
 
 .section-head h2 {
   margin: 0;
   font-size: 14.5px;
-  font-weight: 650;
+  font-weight: var(--text-title);
 }
 
 .topic-list {
@@ -1636,7 +1659,7 @@ a:hover {
 
 .topic {
   padding: 15px 16px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -1645,18 +1668,18 @@ a:hover {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .topic-name {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   overflow-wrap: anywhere;
 }
 
 .topic-meta {
   font-size: 11.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -1695,14 +1718,14 @@ a:hover {
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 6px;
   font-size: 11.5px;
   color: var(--ink-2);
 }
 
 .point-chip b {
-  font-weight: 600;
+  font-weight: var(--text-title);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
@@ -1711,7 +1734,7 @@ a:hover {
   display: flex;
   gap: 10px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-left: 2px solid var(--accent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   background: #fff;
@@ -1724,7 +1747,7 @@ a:hover {
   display: flex;
   flex-direction: column;
   gap: 0;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   overflow: hidden;
   background: #fff;
@@ -1732,7 +1755,7 @@ a:hover {
 
 .event {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 11px 14px;
   font-size: 12.5px;
   color: var(--ink-2);
@@ -1744,7 +1767,7 @@ a:hover {
 
 .event time {
   flex: none;
-  color: var(--ink-3);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1767,12 +1790,12 @@ a:hover {
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .quiz-card {
-  padding: 16px;
-  border: 1px solid var(--border);
+  padding: var(--space-4);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -1782,7 +1805,7 @@ a:hover {
   flex-direction: column;
   gap: 14px;
   padding: 18px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -1790,26 +1813,26 @@ a:hover {
 .quiz-form .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .result-head {
   padding: 18px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
 
 .result-score {
   font-size: 34px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
 .result-item {
   padding: 14px 16px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -1846,14 +1869,14 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
 .result-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
   margin-bottom: 6px;
 }
@@ -1867,7 +1890,7 @@ a:hover {
 
 .answer-cell {
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius-sm);
   background: #fbfbf8;
   font-size: 13px;
@@ -1882,12 +1905,12 @@ a:hover {
   font-size: 10.5px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .answer-text.strong {
   color: var(--ink);
-  font-weight: 600;
+  font-weight: var(--text-title);
 }
 
 .explain-block {
@@ -1928,7 +1951,7 @@ a:hover {
   width: min(540px, 100%);
   max-height: 90vh;
   overflow-y: auto;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 18px 50px rgba(23, 23, 26, 0.22);
@@ -1960,7 +1983,7 @@ a:hover {
   flex-direction: column;
   gap: 10px;
   padding: 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -1968,7 +1991,7 @@ a:hover {
 .agent-row-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .agent-fields {
@@ -1981,14 +2004,14 @@ a:hover {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 20px 22px 0;
 }
 
 .modal-head h2 {
   margin: 0;
   font-size: 17px;
-  font-weight: 650;
+  font-weight: var(--text-title);
 }
 
 .modal-head p {
@@ -2009,7 +2032,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: var(--space-2);
   padding: 14px 22px 20px;
   border-top: 1px solid var(--border);
 }
@@ -2022,7 +2045,7 @@ a:hover {
 
 .hint-box {
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius-sm);
   background: var(--surface-soft);
   color: var(--ink-2);
@@ -2084,7 +2107,7 @@ a:hover {
 .boot h1 {
   margin: 0 0 8px;
   font-size: 22px;
-  font-weight: 650;
+  font-weight: var(--text-title);
 }
 
 .boot p {
@@ -2101,7 +2124,7 @@ a:hover {
 }
 
 .teacher-head .page-actions {
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .teacher-badge {
@@ -2109,7 +2132,7 @@ a:hover {
   align-items: center;
   gap: 7px;
   padding: 4px 11px 4px 4px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 999px;
   background: #fff;
   font-size: 12.5px;
@@ -2125,7 +2148,7 @@ a:hover {
 .tabs-bar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex-wrap: wrap;
   padding: 10px 32px;
   border-bottom: 1px solid var(--border);
@@ -2153,12 +2176,12 @@ a:hover {
   margin-left: 3px;
   font-size: 12.5px;
   font-weight: 400;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .panel {
   padding: 18px 20px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -2167,19 +2190,19 @@ a:hover {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   margin-bottom: 12px;
 }
 
 .panel-head h2 {
   margin: 0;
   font-size: 14.5px;
-  font-weight: 650;
+  font-weight: var(--text-title);
 }
 
 .panel-empty {
   padding: 20px 2px;
-  color: var(--ink-3);
+  color: var(--text-muted);
   font-size: 12.5px;
   line-height: 1.7;
 }
@@ -2196,7 +2219,7 @@ a:hover {
 .empty-card h2 {
   margin: 0 0 6px;
   font-size: 19px;
-  font-weight: 650;
+  font-weight: var(--text-title);
 }
 
 .empty-card p {
@@ -2210,7 +2233,7 @@ a:hover {
 .overview-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 16px;
+  gap: var(--space-4);
   margin-top: 16px;
 }
 
@@ -2223,7 +2246,7 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-3);
   width: 100%;
   padding: 10px 4px;
   border: 0;
@@ -2246,7 +2269,7 @@ a:hover {
 
 .todo-title {
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   line-height: 1.45;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2256,7 +2279,7 @@ a:hover {
 .todo-side {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   flex: none;
 }
 
@@ -2268,7 +2291,7 @@ a:hover {
 .weak-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   padding: 10px 0;
   border-bottom: 1px solid var(--border);
 }
@@ -2284,14 +2307,14 @@ a:hover {
 
 .weak-name {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   overflow-wrap: anywhere;
 }
 
 .t-split {
   display: grid;
   grid-template-columns: 296px minmax(0, 1fr);
-  gap: 16px;
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -2305,7 +2328,7 @@ a:hover {
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .btn-block {
@@ -2317,7 +2340,7 @@ a:hover {
   flex-direction: column;
   gap: 3px;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
@@ -2326,7 +2349,7 @@ a:hover {
 
 .class-item strong {
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   overflow-wrap: anywhere;
 }
 
@@ -2356,14 +2379,14 @@ a:hover {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .detail-title {
   margin: 0;
   font-size: 20px;
-  font-weight: 650;
+  font-weight: var(--text-title);
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
@@ -2402,14 +2425,14 @@ a:hover {
   margin: 2px 0 4px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 26px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   letter-spacing: 0.16em;
   color: #174d37;
 }
 
 .invite-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   flex-wrap: wrap;
 }
 
@@ -2430,9 +2453,9 @@ a:hover {
 .data-table th {
   background: var(--surface-soft);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   letter-spacing: 0.04em;
-  color: var(--ink-3);
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -2467,7 +2490,7 @@ a:hover {
   gap: 14px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 9px;
   background: #fff;
   text-align: left;
@@ -2508,7 +2531,7 @@ a:hover {
   gap: 3px;
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
@@ -2517,7 +2540,7 @@ a:hover {
 
 .as-card strong {
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -2542,7 +2565,7 @@ a:hover {
 .missing-box {
   margin-top: 14px;
   padding: 11px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius-sm);
   background: #fbfbf8;
 }
@@ -2550,7 +2573,7 @@ a:hover {
 .missing-box.done {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   border-color: #cfe0d6;
   background: var(--accent-soft);
   color: #174d37;
@@ -2572,7 +2595,7 @@ a:hover {
 .question-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 150px;
-  gap: 16px;
+  gap: var(--space-4);
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
 }
@@ -2594,18 +2617,18 @@ a:hover {
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .practice-box {
   padding: 12px 14px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius-sm);
   background: #fbfbf8;
 }
@@ -2613,7 +2636,7 @@ a:hover {
 .check-line {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 13px;
   color: var(--ink-2);
   cursor: pointer;
@@ -2638,8 +2661,8 @@ a:hover {
   width: 100%;
   max-width: 420px;
   margin: 0 auto;
-  padding: 24px;
-  border: 1px solid var(--border);
+  padding: var(--space-5);
+  border: var(--border-card);
   border-radius: 14px;
   background: #fff;
   box-shadow: var(--shadow);
@@ -2648,7 +2671,7 @@ a:hover {
 .auth-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .auth-mark {
@@ -2660,7 +2683,7 @@ a:hover {
   background: var(--ink);
   color: #fff;
   font-size: 15px;
-  font-weight: 650;
+  font-weight: var(--text-title);
 }
 
 .auth-brand-text {
@@ -2671,7 +2694,7 @@ a:hover {
 .auth-wordmark {
   font-family: Georgia, "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STZhongsong", "SimSun", serif;
   font-size: 26px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   line-height: 1.2;
   letter-spacing: -0.01em;
   color: var(--ink);
@@ -2692,7 +2715,7 @@ a:hover {
 .auth-tagline {
   margin-top: 2px;
   font-size: 11.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 /* 提示文字统一用 * 打头，和正文区分开 */
@@ -2713,7 +2736,7 @@ a:hover {
 .auth-input-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .auth-input-row .input {
@@ -2744,7 +2767,7 @@ a:hover {
   border: 0;
   background: none;
   font-size: 12px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .auth-more:hover {
@@ -2790,7 +2813,7 @@ a:hover {
   font-size: 11.5px;
   line-height: 1.7;
   text-align: center;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .auth-link {
@@ -2805,7 +2828,7 @@ a:hover {
 .roster-sample {
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: 8px;
   background: var(--surface-soft);
   font-size: 12px;
@@ -2828,7 +2851,7 @@ a:hover {
   gap: 18px;
   flex-wrap: wrap;
   padding: 16px 18px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -2836,7 +2859,7 @@ a:hover {
 .class-banner-name {
   margin: 2px 0 2px;
   font-size: 20px;
-  font-weight: 650;
+  font-weight: var(--text-title);
   letter-spacing: -0.01em;
 }
 
@@ -2853,28 +2876,28 @@ a:hover {
 
 .class-banner-stats b {
   font-size: 22px;
-  font-weight: 650;
+  font-weight: var(--text-title);
   font-variant-numeric: tabular-nums;
 }
 
 .class-banner-stats span {
   font-size: 11.5px;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .task-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-4);
   padding: 14px 16px;
-  border: 1px solid var(--border);
+  border: var(--border-card);
   border-radius: var(--radius);
   background: #fff;
 }
@@ -2895,7 +2918,7 @@ a:hover {
 .task-title {
   margin: 6px 0 2px;
   font-size: 14.5px;
-  font-weight: 600;
+  font-weight: var(--text-title);
   line-height: 1.45;
   overflow-wrap: anywhere;
 }
@@ -2909,7 +2932,7 @@ a:hover {
 
 .task-score {
   font-size: 21px;
-  font-weight: 650;
+  font-weight: var(--text-title);
   font-variant-numeric: tabular-nums;
 }
 
@@ -2917,14 +2940,14 @@ a:hover {
   margin-left: 2px;
   font-size: 11.5px;
   font-weight: 400;
-  color: var(--ink-3);
+  color: var(--text-muted);
 }
 
 /* 学习轨迹（学生端） */
 .mastery-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   margin-bottom: 12px;
 }
 
@@ -2960,7 +2983,7 @@ a:hover {
 .mastery-val {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--text-title);
 }
 
 .timeline-list {
@@ -2991,7 +3014,7 @@ a:hover {
 
 .timeline-score {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--text-title);
   flex: none;
 }
 
@@ -3074,7 +3097,7 @@ a:hover {
   .task-card {
     align-items: flex-start;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-3);
   }
 
   .task-side {
@@ -3326,5 +3349,55 @@ a:hover {
 
   .overlay {
     padding: 12px;
+  }
+}
+
+/* ---------------------------------------------------------------- 交互三态与动效约束 */
+/* 可点击元素统一：hover 改边框/底色，active 下压，focus-visible 沿用 2px 实线描边 */
+.btn,
+.nav-item,
+.icon-btn,
+.class-item,
+.mini-row,
+.task-card,
+.quiz-card {
+  transition:
+    background-color var(--dur-1) var(--ease),
+    border-color var(--dur-1) var(--ease),
+    transform var(--dur-1) var(--ease);
+}
+
+.btn:active:not(:disabled),
+.icon-btn:active:not(:disabled),
+.nav-item:active {
+  transform: scale(0.98);
+}
+
+.class-item:active,
+.mini-row:active {
+  transform: scale(0.995);
+}
+
+/* 卡片选中态：2px 主题色边框，不叠加彩色阴影 */
+.class-item.active {
+  border: 2px solid var(--accent);
+  padding: 11px 13px;
+  box-shadow: none;
+}
+
+.task-card:hover,
+.quiz-card:hover {
+  border-color: var(--border-strong);
+}
+
+/* 减少动态效果：过渡与动画直接归零，功能完全不受影响 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
 }
