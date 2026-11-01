@@ -3570,3 +3570,67 @@ a:hover {
 .roster-preview tbody tr.is-off {
   opacity: 0.45;
 }
+
+/* ---------------------------------------------------------------- 叠卡展开 */
+.stack-cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.stack-item {
+  transform-origin: top center;
+  transition:
+    transform var(--dur-3) var(--ease),
+    opacity var(--dur-3) var(--ease),
+    margin-top var(--dur-3) var(--ease);
+}
+
+/* 展开态：其余卡片淡出并下移 */
+.stack-cards.is-expanded .stack-item {
+  opacity: 0;
+  transform: translateY(24px) scale(0.98);
+  pointer-events: none;
+}
+
+.stack-cards.is-expanded .stack-item.is-open {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.class-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 14px 0 6px;
+  padding-left: 2px;
+}
+
+.stack-toggle {
+  padding: 2px 7px;
+  border: var(--border-card);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  transition:
+    color var(--dur-1) var(--ease),
+    border-color var(--dur-1) var(--ease),
+    transform var(--dur-1) var(--ease);
+}
+
+.stack-toggle:hover {
+  color: var(--ink);
+  border-color: var(--border-strong);
+}
+
+.stack-toggle:active {
+  transform: scale(0.97);
+}
+
+.stack-toggle[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: #b9d2c4;
+}

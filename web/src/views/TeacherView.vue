@@ -5,6 +5,7 @@ import { clearTeacherSession, loadTeacher, notify, signOut, state } from '../sto
 import { debounce, openStream } from '../realtime'
 import Icon from '../components/Icon.vue'
 import AuthGate from '../components/AuthGate.vue'
+import StackCards from '../components/StackCards.vue'
 import AssignmentDialog from '../components/AssignmentDialog.vue'
 import AssignmentDetail from '../components/AssignmentDetail.vue'
 import RosterDialog from '../components/RosterDialog.vue'
@@ -19,6 +20,10 @@ const tabs = [
 ]
 
 const tab = ref('overview')
+const stackClasses = ref(true)
+const stackAssignments = ref(true)
+const expandedClass = ref('')
+const expandedAssignment = ref('')
 const checking = ref(true)
 const teacher = computed(() => state.teacher.profile)
 
@@ -835,23 +840,39 @@ function kindLabel(kind) {
             <div v-else-if="!classes.length" class="panel-empty">还没有班级。</div>
             <template v-else>
               <div v-for="section in classSections" :key="section.id || 'personal'">
-                <div class="small muted class-section-title">{{ section.name }}</div>
-                <button
-                  v-for="item in section.items"
-                  :key="item.id"
-                  class="class-item"
-                  :class="{ active: selectedClassId === item.id }"
-                  type="button"
-                  @click="selectClass(item.id)"
+                <div class="class-section-head">
+                  <span class="small muted">{{ section.name }}</span>
+                  <button
+                    class="stack-toggle"
+                    type="button"
+                    :aria-pressed="stackClasses"
+                    @click="stackClasses = !stackClasses"
+                  >
+                    {{ stackClasses ? '平铺' : '堆叠' }}
+                  </button>
+                </div>
+                <StackCards
+                  v-model:expanded="expandedClass"
+                  :items="section.items"
+                  :stacked="stackClasses"
                 >
-                  <div class="row" style="justify-content: space-between; gap: 8px">
-                    <strong>{{ item.name }}</strong>
-                    <span v-if="item.readonly" class="chip accent">只读</span>
-                    <span v-else-if="item.archived" class="chip">已归档</span>
-                  </div>
-                  <div class="small muted">{{ item.subject || '未填科目' }} · {{ item.student_count }} 人</div>
-                  <div class="small muted">邀请码 {{ item.code }} · {{ item.open_count }} 份进行中</div>
-                </button>
+                  <template #card="{ item }">
+                    <button
+                      class="class-item"
+                      :class="{ active: selectedClassId === item.id }"
+                      type="button"
+                      @click="selectClass(item.id)"
+                    >
+                      <div class="row" style="justify-content: space-between; gap: 8px">
+                        <strong>{{ item.name }}</strong>
+                        <span v-if="item.readonly" class="chip accent">只读</span>
+                        <span v-else-if="item.archived" class="chip">已归档</span>
+                      </div>
+                      <div class="small muted">{{ item.subject || '未填科目' }} · {{ item.student_count }} 人</div>
+                      <div class="small muted">邀请码 {{ item.code }} · {{ item.open_count }} 份进行中</div>
+                    </button>
+                  </template>
+                </StackCards>
               </div>
             </template>
           </aside>
@@ -1016,37 +1037,48 @@ function kindLabel(kind) {
               <div class="section">
                 <div class="section-head">
                   <h2>本班作业</h2>
-                  <button
-                    v-if="!classDetail.class.readonly"
-                    class="btn btn-sm"
-                    type="button"
-                    @click="openCreateDialog"
-                  >
-                    <Icon name="plus" :size="13" />
-                    布置作业
-                  </button>
+                  <div class="row" style="gap: 8px">
+                    <button
+                      class="stack-toggle"
+                      type="button"
+                      :aria-pressed="stackAssignments"
+                      @click="stackAssignments = !stackAssignments"
+                    >
+                      {{ stackAssignments ? '平铺' : '堆叠' }}
+                    </button>
+                    <button
+                      v-if="!classDetail.class.readonly"
+                      class="btn btn-sm"
+                      type="button"
+                      @click="openCreateDialog"
+                    >
+                      <Icon name="plus" :size="13" />
+                      布置作业
+                    </button>
+                  </div>
                 </div>
                 <div v-if="!classDetail.assignments.length" class="panel-empty">还没有布置作业。</div>
-                <div v-else class="mini-list">
-                  <button
-                    v-for="item in classDetail.assignments"
-                    :key="item.id"
-                    class="mini-row"
-                    type="button"
-                    @click="openAssignment(item.id)"
-                  >
-                    <div class="mini-main">
-                      <div class="todo-title">{{ item.title }}</div>
-                      <div class="small muted">
-                        {{ kindLabel(item.kind) }} · {{ dueText(item) }} · 已交 {{ item.submitted }}/{{ item.total }}
+                <StackCards
+                  v-else
+                  v-model:expanded="expandedAssignment"
+                  :items="classDetail.assignments"
+                  :stacked="stackAssignments"
+                >
+                  <template #card="{ item }">
+                    <button class="mini-row" type="button" @click="openAssignment(item.id)">
+                      <div class="mini-main">
+                        <div class="todo-title">{{ item.title }}</div>
+                        <div class="small muted">
+                          {{ kindLabel(item.kind) }} · {{ dueText(item) }} · 已交 {{ item.submitted }}/{{ item.total }}
+                        </div>
                       </div>
-                    </div>
-                    <div class="mini-bar">
-                      <div class="bar"><span :style="{ width: pct(item.completion) }" /></div>
-                      <span v-if="canViewGrades" class="small muted">{{ score(item.avg_score) }} 分</span>
-                    </div>
-                  </button>
-                </div>
+                      <div class="mini-bar">
+                        <div class="bar"><span :style="{ width: pct(item.completion) }" /></div>
+                        <span v-if="canViewGrades" class="small muted">{{ score(item.avg_score) }} 分</span>
+                      </div>
+                    </button>
+                  </template>
+                </StackCards>
               </div>
             </template>
           </div>
