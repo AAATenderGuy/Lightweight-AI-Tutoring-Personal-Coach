@@ -3401,3 +3401,102 @@ a:hover {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------------------------------------------------------------- 完成反馈按钮 */
+.act-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: #fff;
+  font-size: 13.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+  transition:
+    transform var(--dur-1) var(--ease),
+    background-color var(--dur-2) var(--ease),
+    border-color var(--dur-2) var(--ease);
+}
+
+.act-btn.block {
+  width: 100%;
+}
+
+.act-btn:hover:not(:disabled) {
+  background: #000;
+}
+
+.act-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.act-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.act-btn.is-done {
+  background: var(--accent);
+  border-color: var(--accent);
+  opacity: 1;
+}
+
+.act-btn.is-error {
+  animation: act-shake 300ms var(--ease) 1;
+}
+
+.act-face {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    opacity var(--dur-2) var(--ease),
+    transform var(--dur-2) var(--ease);
+}
+
+.act-done {
+  position: absolute;
+  inset: 0;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(4px) scale(0.96);
+  pointer-events: none;
+}
+
+.is-done .act-idle {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.96);
+}
+
+.is-done .act-done {
+  opacity: 1;
+  transform: none;
+}
+
+.act-spin {
+  animation: act-spin 900ms linear infinite;
+}
+
+@keyframes act-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2px);
+  }
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes act-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -4,11 +4,11 @@ import { api } from '../api'
 import { clearStudent, loadStudentTasks, notify, signOut, state } from '../store'
 import { debounce, openStream } from '../realtime'
 import Icon from '../components/Icon.vue'
+import ActionButton from '../components/ActionButton.vue'
 import AuthGate from '../components/AuthGate.vue'
 
 const loading = ref(false)
 const starting = ref(false)
-const submitting = ref(false)
 
 const stage = ref('list')
 const activeTask = ref(null)
@@ -184,26 +184,27 @@ async function submitFile() {
 }
 
 async function submit() {
-  if (!quiz.value || submitting.value) return
-  submitting.value = true
-  try {
-    const payload = quiz.value.questions.map((question) => ({
-      question_id: question.id,
-      answer: String(answers[question.id] ?? ''),
-    }))
-    result.value = await api.student.submit(
-      activeTask.value.id, profile.value.id, profile.value.token, payload,
-    )
-    stage.value = 'result'
-    quiz.value = null
-    await refreshTasks()
-    notify(`已提交，得分 ${Math.round((result.value.score || 0) * 100)}`)
-    window.scrollTo({ top: 0 })
-  } catch (error) {
-    notify(error.message, 'error')
-  } finally {
-    submitting.value = false
-  }
+  const payload = quiz.value.questions.map((question) => ({
+    question_id: question.id,
+    answer: String(answers[question.id] ?? ''),
+  }))
+  const data = await api.student.submit(
+    activeTask.value.id, profile.value.id, profile.value.token, payload,
+  )
+  result.value = data
+  notify(`已提交，得分 ${Math.round((data.score || 0) * 100)}`)
+  refreshTasks().catch(() => {})
+}
+
+/** 按钮把「已提交」显示满 1.2 秒后再切到结果页，避免反馈一闪而过。 */
+function afterSubmit() {
+  quiz.value = null
+  stage.value = 'result'
+  window.scrollTo({ top: 0 })
+}
+
+function onSubmitError(error) {
+  notify(error.message, 'error')
 }
 
 function backToList() {
@@ -361,9 +362,16 @@ function correctText(item) {
                   <div style="font-size: 20px; font-weight: 600">{{ answered }} / {{ quiz.questions.length }}</div>
                 </div>
                 <div class="bar" style="margin: 0"><span :style="{ width: `${progressPercent}%` }" /></div>
-                <button class="btn btn-primary" type="button" :disabled="submitting || !answered" @click="submit">
-                  {{ submitting ? '提交中…' : '提交作业' }}
-                </button>
+                <ActionButton
+                  :action="submit"
+                  label="提交作业"
+                  busy-label="提交中…"
+                  done-label="已提交"
+                  :disabled="!answered"
+                  block
+                  @settled="afterSubmit"
+                  @error="onSubmitError"
+                />
                 <p class="small muted" style="margin: 0">提交后不能修改，未作答按 0 分计。</p>
               </div>
               <div class="hint-box">

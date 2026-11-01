@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { api } from '../api'
 import { notify } from '../store'
 import Icon from './Icon.vue'
+import ActionButton from './ActionButton.vue'
 
 const props = defineProps({
   classes: { type: Array, default: () => [] },
@@ -113,24 +114,24 @@ function quickDue(kind) {
   form.due = localInput(date)
 }
 
-async function submit() {
-  if (busy.value) return
+const created = ref(null)
+
+function fail(message) {
+  errorText.value = message
+  return new Error(message)
+}
+
+/** 交给 ActionButton：成功时由按钮显示「已布置」，1.2 秒后再关闭对话框。 */
+async function run() {
   errorText.value = ''
   if (!isPractice.value) {
-    if (!form.class_id) {
-      errorText.value = '请先选择一个班级。'
-      return
-    }
+    if (!form.class_id) throw fail('请先选择一个班级。')
     if (!form.topic.trim()) {
-      errorText.value = isFile.value
+      throw fail(isFile.value
         ? '请填写作业主题，标题和文件名会用到它。'
-        : '请填写作业主题，AI 会围绕它出题。'
-      return
+        : '请填写作业主题，AI 会围绕它出题。')
     }
-    if (isBank.value && !bankPicked.value.size) {
-      errorText.value = '请至少勾选一道题。'
-      return
-    }
+    if (isBank.value && !bankPicked.value.size) throw fail('请至少勾选一道题。')
   }
   busy.value = true
   try {
@@ -155,17 +156,26 @@ async function submit() {
           draft: form.draft,
           question_ids: isBank.value ? [...bankPicked.value] : [],
         })
+    created.value = data.assignment
     notify(isPractice.value
       ? '补练已布置到班级'
       : form.draft
         ? '作业已存为草稿，学生端暂不可见'
         : '作业已布置，学生端会立即看到')
-    emit('created', data.assignment)
-  } catch (error) {
-    errorText.value = error.message
   } finally {
     busy.value = false
   }
+}
+
+function afterCreated() {
+  if (!created.value) return
+  const assignment = created.value
+  created.value = null
+  emit('created', assignment)
+}
+
+function onCreateError(error) {
+  errorText.value = error.message
 }
 
 function close() {
@@ -367,10 +377,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
       <div class="modal-foot">
         <button class="btn" type="button" :disabled="busy" @click="close">取消</button>
-        <button class="btn btn-primary" type="button" :disabled="busy" @click="submit">
-          <Icon :name="busy ? 'refresh' : 'spark'" :size="14" />
-          {{ busy ? '出题中…' : isPractice ? '生成并布置' : '布置作业' }}
-        </button>
+        <ActionButton
+          :action="run"
+          :label="isPractice ? '生成并布置' : '布置作业'"
+          busy-label="出题中…"
+          done-label="已布置"
+          :disabled="busy"
+          @settled="afterCreated"
+          @error="onCreateError"
+        />
       </div>
     </div>
   </div>
