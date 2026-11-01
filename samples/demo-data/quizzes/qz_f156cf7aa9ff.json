@@ -1,0 +1,68 @@
+{
+  "id": "qz_f156cf7aa9ff",
+  "title": "变式练习：凑导数定义与隐函数求导",
+  "topic": "不知道",
+  "difficulty": "medium",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "设函数 f(x) 在 x=0 处连续，且 lim_{x→0} [f(x)cos x - e^{x^2} + 1] / ln(1+x^2) = 2，则 f(x) 在 x=0 处（ ）",
+      "explanation": "由极限存在且分母~x^2，得 f(0)=1；凑导数定义得 f'(0)=4。误选B未正确处理e^{x^2}展开。",
+      "knowledge_point": "凑导数定义",
+      "type": "single",
+      "options": [
+        "可导且 f'(0)=4",
+        "可导且 f'(0)=2",
+        "不可导",
+        "连续但不可导"
+      ],
+      "answer_index": 0
+    },
+    {
+      "id": "q2",
+      "question": "设 y=f(x) 由方程 x = ∫_{y-x}^{1} cos^2(π t/4) dt 确定，则 lim_{n→∞} n[f(1/n)-1] = （ ）",
+      "explanation": "x=0时y=1；极限化为f'(0)。两边求导得1=cos^2(π(y-x)/4)(y'-1)，代入x=0,y=1得y'=2。",
+      "knowledge_point": "隐函数求导",
+      "type": "single",
+      "options": [
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "answer_index": 1
+    },
+    {
+      "id": "q3",
+      "question": "设 3 阶矩阵 A 的特征多项式为 |λE-A| = λ^3 + aλ^2 + bλ + c，且 |E-A|=2，|-E-A|=0，|2E-A|=-2，则 |3E-A| = （ ）",
+      "explanation": "代入λ=1,-1,2得方程组解得a=-2,b=-1,c=4，特征多项式λ^3-2λ^2-λ+4，λ=3得10。",
+      "knowledge_point": "特征多项式",
+      "type": "single",
+      "options": [
+        "8",
+        "10",
+        "12",
+        "14"
+      ],
+      "answer_index": 1
+    },
+    {
+      "id": "q4",
+      "question": "若数列 {a_n} 收敛，且级数 ∑_{n=1}^∞ b_n 条件收敛，则关于级数 ∑_{n=1}^∞ a_n b_n，下列说法正确的是（ ）",
+      "explanation": "收敛数列必有界，|a_n b_n|≤M|b_n|，而∑|b_n|发散，但需注意条件收敛时∑|b_n|发散，故不能直接比较；但a_n→0，且a_n有界，实际上∑a_n b_n绝对收敛需用Abel判别法？正确推理：a_n收敛故有界，但∑|b_n|发散，不能推出绝对收敛。反例：a_n=1/n, b_n=(-1)^n/√n，∑b_n条件收敛，∑a_n b_n=∑(-1)^n/n^{3/2}绝对收敛。但若a_n=1, b_n=(-1)^n/√n，∑a_n b_n条件收敛。故可能条件收敛，不一定绝对收敛。因此D正确。",
+      "knowledge_point": "绝对收敛",
+      "type": "single",
+      "options": [
+        "一定绝对收敛",
+        "一定条件收敛",
+        "一定发散",
+        "可能收敛也可能发散"
+      ],
+      "answer_index": 0
+    }
+  ],
+  "created_at": 1792925824.1491075,
+  "source": "similar",
+  "parent_id": "qz_32c3fd59edf4",
+  "practice": true
+}

@@ -1,0 +1,10 @@
+{
+  "id": "tc_demo",
+  "username": "demo",
+  "name": "演示教师",
+  "role": "owner",
+  "salt": "981d56f5618b6b05b20cf3083509bb36",
+  "password_hash": "8fc0a0831e06daa857958044103b02010b47cb2682aa3fdf7d4981380aae880f",
+  "created_at": 1700000000.0,
+  "last_login": 1700100000.0
+}

@@ -1,0 +1,66 @@
+{
+  "id": "qz_2fe287068ac0",
+  "title": "牛顿相关随堂测验（中等难度）",
+  "topic": "牛顿",
+  "difficulty": "medium",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "设函数 f(x) 在 [0,1] 上可导，且 f'(x) + f^2(x) ≥ 0，f(0) > 0。则下列不等式一定成立的是（ ）。",
+      "explanation": "构造 F(x)=f(x)e^{∫₀ˣ f(t)dt}，由条件知 F 单调增，故 F(1)≥F(0)，得 f(1)e^{∫₀¹ f}≥f(0)，因 f(0)>0 得 f(1)>0，取对数即得 B。",
+      "knowledge_point": "积分不等式",
+      "type": "single",
+      "options": [
+        "∫₀¹ f(x) dx ≤ ln(f(1)/f(0))",
+        "∫₀¹ f(x) dx ≥ ln(f(0)/f(1))",
+        "∫₀¹ f(x) dx ≤ ln f(1)",
+        "∫₀¹ f(x) dx ≥ ln f(0)"
+      ],
+      "answer_index": 1
+    },
+    {
+      "id": "q2",
+      "question": "设 f(x) 在 [0,1] 上有一阶连续导数，且 0 < f'(x) ≤ 1，f(0)=0。则下列结论正确的是（ ）。",
+      "explanation": "由 f'(x)>0 且 f(0)=0 知 f(x)>0 且 f(x)≤x≤1，故 f(x)≥f^3(x)，积分得 ∫f ≥ ∫f^3；又 ∫f ≤1，所以 (∫f)^2 ≥ ∫f·∫f ≥ ∫f^3，A 正确。",
+      "knowledge_point": "积分不等式",
+      "type": "single",
+      "options": [
+        "(∫₀¹ f(x) dx)^2 ≥ ∫₀¹ [f(x)]^3 dx",
+        "(∫₀¹ f(x) dx)^2 ≤ ∫₀¹ [f(x)]^3 dx",
+        "∫₀¹ f(x) dx ≥ ∫₀¹ [f(x)]^3 dx",
+        "∫₀¹ f(x) dx ≤ ∫₀¹ [f(x)]^3 dx"
+      ],
+      "answer_index": 0
+    },
+    {
+      "id": "q3",
+      "question": "设 f(x) 在 [0,+∞) 上可导，f(x) 有界，且 lim_{x→+∞} f'(x) 存在。则 lim_{x→+∞} f'(x) 等于（ ）。",
+      "explanation": "若极限 A>0，由保号性 f'(x)>A/2，逆用牛顿-莱布尼茨公式得 f(x) 无界，矛盾；A<0 类似。故 A=0。",
+      "knowledge_point": "牛顿-莱布尼茨公式",
+      "type": "single",
+      "options": [
+        "0",
+        "1",
+        "不存在",
+        "无法确定"
+      ],
+      "answer_index": 0
+    },
+    {
+      "id": "q4",
+      "question": "关于反常积分 ∫₂^{+∞} 1/(x^p ln^q x) dx（p,q 为常数），下列判别结论正确的是（ ）。",
+      "explanation": "当 p>1 时，x^p ln^q x 增长快，积分收敛；p=1 时化为 ∫ dt/t^q，q>1 收敛，q≤1 发散；p<1 时发散。",
+      "knowledge_point": "反常积分判别",
+      "type": "single",
+      "options": [
+        "p>1 时收敛；p=1 时，q>1 收敛，q≤1 发散；p<1 时发散",
+        "p>1 时收敛；p=1 时，q≥1 收敛，q<1 发散；p<1 时发散",
+        "p≥1 时收敛；p<1 时发散",
+        "p>1 时收敛；p≤1 时发散"
+      ],
+      "answer_index": 0
+    }
+  ],
+  "created_at": 1792912323.5346909,
+  "source": "generated"
+}

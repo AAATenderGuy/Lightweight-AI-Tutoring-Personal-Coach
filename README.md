@@ -155,6 +155,17 @@ cd edu
 # macOS/Linux: .venv/bin/python -m server.main --port 8000
 ```
 
+### 想直接看有数据的界面
+
+仓库里另带一份**脱敏**的演示数据：4 个班级、3 名学生、4 份作业、7 套测验、2 个课堂。
+首次启动前拷贝进去即可，账号见 [samples/demo-data/README.md](samples/demo-data/README.md)：
+
+```bash
+cp -r samples/demo-data/* data/
+```
+
+教师 `demo` / `demo1234`；学生学号 `2024001` / `2024002` / `2024003`，密码同为 `demo1234`。
+
 ### 部署到云服务器
 
 有两条路，按需要选：
