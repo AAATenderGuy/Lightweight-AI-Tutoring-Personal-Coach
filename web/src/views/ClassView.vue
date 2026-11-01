@@ -1,21 +1,11 @@
 <script setup>
 import { computed, onUnmounted, reactive, ref, watch } from 'vue'
 import { api } from '../api'
-import { clearStudent, loadStudentTasks, notify, saveStudent, state } from '../store'
+import { clearStudent, loadStudentTasks, notify, signOut, state } from '../store'
 import { debounce, openStream } from '../realtime'
 import Icon from '../components/Icon.vue'
+import AuthGate from '../components/AuthGate.vue'
 
-const joinForm = reactive({
-  code: state.pendingJoinCode || '',
-  name: '',
-  number: '',
-})
-const loginForm = reactive({ number: '', password: '', code: '' })
-const authMode = ref(state.pendingJoinCode ? 'join' : 'login')
-const loggingIn = ref(false)
-const loginError = ref('')
-const joining = ref(false)
-const joinError = ref('')
 const loading = ref(false)
 const starting = ref(false)
 const submitting = ref(false)
@@ -112,67 +102,9 @@ async function loadTimeline() {
   }
 }
 
-async function login() {
-  if (!loginForm.number.trim() || !loginForm.password) {
-    loginError.value = '请填写学号和密码。'
-    return
-  }
-  loggingIn.value = true
-  loginError.value = ''
-  try {
-    const data = await api.student.login({
-      number: loginForm.number.trim(),
-      password: loginForm.password,
-      code: loginForm.code.trim(),
-    })
-    saveStudent({ ...data.student, token: data.token, class_name: data.klass.name })
-    state.student.klass = data.klass
-    state.student.tasks = data.tasks || []
-    state.student.loaded = true
-    loginForm.password = ''
-    stage.value = 'list'
-    notify(`欢迎回来，${data.student.name}`)
-    window.scrollTo({ top: 0 })
-  } catch (error) {
-    loginError.value = error.message
-  } finally {
-    loggingIn.value = false
-  }
-}
-
-async function join() {
-  if (!joinForm.code.trim() || !joinForm.name.trim()) {
-    joinError.value = '邀请码和姓名都要填写。'
-    return
-  }
-  joining.value = true
-  joinError.value = ''
-  try {
-    const data = await api.student.join({
-      code: joinForm.code.trim(),
-      name: joinForm.name.trim(),
-      number: joinForm.number.trim(),
-    })
-    saveStudent({ ...data.student, token: data.token, class_name: data.klass.name })
-    state.student.klass = data.klass
-    state.pendingJoinCode = ''
-    await refreshTasks()
-    notify(`已加入「${data.klass.name}」`)
-  } catch (error) {
-    joinError.value = error.message
-  } finally {
-    joining.value = false
-  }
-}
-
 function leaveClass() {
   if (!window.confirm('退出当前班级？重新登录需要学号和密码，已提交的作业记录不会丢失。')) return
-  clearStudent()
-  joinForm.name = ''
-  joinForm.number = ''
-  loginForm.password = ''
-  loginForm.code = ''
-  authMode.value = 'login'
+  signOut()
   stage.value = 'list'
   quiz.value = null
   result.value = null
@@ -346,7 +278,7 @@ function correctText(item) {
     <header class="page-head">
       <div>
         <h1>我的班级</h1>
-        <p>用老师导入的学号和密码登录，在这里完成随堂测验和课后作业。</p>
+        <p>登录后在这里完成随堂测验和课后作业。</p>
       </div>
       <div class="page-actions">
         <template v-if="profile">
@@ -368,97 +300,8 @@ function correctText(item) {
 
     <div class="content">
       <div class="wide">
-        <!-- 未登录 -->
-        <div v-if="!profile" class="join-wrap">
-          <form v-if="authMode === 'login'" class="join-card" @submit.prevent="login">
-            <div class="join-mark">E</div>
-            <h2>学生登录</h2>
-            <p class="small muted" style="margin: 0 0 4px">
-              用老师导入的教务系统学号和密码登录；忘记密码请联系老师重置。
-            </p>
-            <div class="field">
-              <label for="login-number">学号</label>
-              <input
-                id="login-number"
-                v-model="loginForm.number"
-                class="input"
-                inputmode="numeric"
-                autocomplete="username"
-                placeholder="例：2024001"
-                maxlength="32"
-                spellcheck="false"
-              />
-            </div>
-            <div class="field">
-              <label for="login-password">密码</label>
-              <input
-                id="login-password"
-                v-model="loginForm.password"
-                class="input"
-                type="password"
-                autocomplete="current-password"
-                placeholder="初始密码由老师提供"
-                maxlength="72"
-              />
-            </div>
-            <details class="field">
-              <summary class="small muted" style="cursor: pointer">同号多班？填写班级邀请码（可选）</summary>
-              <input
-                v-model="loginForm.code"
-                class="input"
-                style="margin-top: 8px"
-                placeholder="6 位邀请码"
-                maxlength="12"
-                spellcheck="false"
-              />
-            </details>
-            <div v-if="loginError" class="msg-error">{{ loginError }}</div>
-            <button class="btn btn-primary btn-block" type="submit" :disabled="loggingIn">
-              {{ loggingIn ? '登录中…' : '登录' }}
-            </button>
-            <p class="small muted" style="margin: 0">还没有账号？让老师先在班级里导入名单。</p>
-            <button class="btn btn-sm btn-ghost" type="button" @click="authMode = 'join'; loginError = ''">
-              老师给了邀请码，改用邀请码加入
-            </button>
-          </form>
-
-          <form v-else class="join-card" @submit.prevent="join">
-            <div class="join-mark">E</div>
-            <h2>用邀请码加入</h2>
-            <p class="small muted" style="margin: 0 0 4px">
-              邀请码由老师提供，共 6 位。老师导入名单后，请改用学号 + 密码登录。
-            </p>
-            <div class="field">
-              <label for="join-code">班级邀请码</label>
-              <input
-                id="join-code"
-                v-model="joinForm.code"
-                class="input invite-input"
-                placeholder="例如 K7M2QP"
-                maxlength="8"
-                autocapitalize="characters"
-                spellcheck="false"
-              />
-            </div>
-            <div class="grid-2">
-              <div class="field">
-                <label for="join-name">姓名</label>
-                <input id="join-name" v-model="joinForm.name" class="input" placeholder="真实姓名或昵称" maxlength="20" />
-              </div>
-              <div class="field">
-                <label for="join-number">学号（可选）</label>
-                <input id="join-number" v-model="joinForm.number" class="input" placeholder="例：07" maxlength="20" />
-              </div>
-            </div>
-            <div v-if="joinError" class="msg-error">{{ joinError }}</div>
-            <button class="btn btn-primary btn-block" type="submit" :disabled="joining">
-              {{ joining ? '正在加入…' : '加入班级' }}
-            </button>
-            <button class="btn btn-sm btn-ghost" type="button" @click="authMode = 'login'; joinError = ''">
-              返回学号登录
-            </button>
-          </form>
-        </div>
+        <!-- 未登录：统一登录卡（学生 / 教师同一个入口） -->
+        <AuthGate v-if="!profile" />
 
         <!-- 作答 -->
         <div v-else-if="stage === 'quiz' && quiz" class="task-run">

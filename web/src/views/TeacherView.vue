@@ -1,10 +1,10 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { api } from '../api'
-import { clearTeacherSession, loadTeacher, notify, state } from '../store'
+import { clearTeacherSession, loadTeacher, notify, signOut, state } from '../store'
 import { debounce, openStream } from '../realtime'
 import Icon from '../components/Icon.vue'
-import TeacherLogin from '../components/TeacherLogin.vue'
+import AuthGate from '../components/AuthGate.vue'
 import AssignmentDialog from '../components/AssignmentDialog.vue'
 import AssignmentDetail from '../components/AssignmentDetail.vue'
 import RosterDialog from '../components/RosterDialog.vue'
@@ -587,7 +587,7 @@ async function logout() {
   } catch {
     /* 即使请求失败也清掉本地登录态 */
   }
-  clearTeacherSession()
+  signOut()
   overview.value = null
   classes.value = []
   assignments.value = []
@@ -652,7 +652,9 @@ function kindLabel(kind) {
       <div class="loading-stage"><div class="spinner" /><strong>正在确认登录状态</strong></div>
     </div>
 
-    <TeacherLogin v-else-if="!teacher" @done="refreshAll" />
+    <div v-else-if="!teacher" class="content">
+      <AuthGate @done="refreshAll" />
+    </div>
 
     <template v-else>
       <header class="page-head teacher-head">

@@ -162,6 +162,10 @@ export async function streamJSON(path, body, onEvent, signal) {
 
 export const api = {
   health: () => request('/api/health'),
+  auth: {
+    login: (payload) => request('/api/auth/login', { method: 'POST', body: payload }),
+    register: (payload) => request('/api/auth/register', { method: 'POST', body: payload }),
+  },
   settings: {
     get: () => request('/api/settings'),
     save: (payload) => request('/api/settings', { method: 'PUT', body: payload }),

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import ChatView from './views/ChatView.vue'
 import ClassroomView from './views/ClassroomView.vue'
 import QuizView from './views/QuizView.vue'
@@ -7,20 +7,26 @@ import MaterialsView from './views/MaterialsView.vue'
 import ProgressView from './views/ProgressView.vue'
 import ClassView from './views/ClassView.vue'
 import TeacherView from './views/TeacherView.vue'
+import AuthGate from './components/AuthGate.vue'
 import Icon from './components/Icon.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
 import Toast from './components/Toast.vue'
 import { bootstrap, state, switchView } from './store'
 
-const nav = [
+const baseNav = [
   { id: 'chat', label: '对话', icon: 'chat' },
   { id: 'classroom', label: '课堂', icon: 'classroom' },
   { id: 'quiz', label: '测验', icon: 'quiz' },
   { id: 'materials', label: '资料', icon: 'materials' },
   { id: 'progress', label: '进度', icon: 'progress' },
-  { id: 'class', label: '班级', icon: 'users' },
-  { id: 'teacher', label: '教师', icon: 'board' },
 ]
+
+/** 登录后只出现与身份匹配的工作区入口；未登录只给「登录」。 */
+const nav = computed(() => {
+  if (state.teacher.profile) return [...baseNav, { id: 'teacher', label: '教师', icon: 'board' }]
+  if (state.student.profile) return [...baseNav, { id: 'class', label: '班级', icon: 'users' }]
+  return [...baseNav, { id: 'auth', label: '登录', icon: 'user' }]
+})
 
 onMounted(bootstrap)
 </script>
@@ -71,6 +77,11 @@ onMounted(bootstrap)
       <ProgressView v-else-if="state.view === 'progress'" />
       <ClassView v-else-if="state.view === 'class'" />
       <TeacherView v-else-if="state.view === 'teacher'" />
+      <section v-else-if="state.view === 'auth'" class="page">
+        <div class="content">
+          <AuthGate />
+        </div>
+      </section>
     </main>
 
     <SettingsDialog v-if="state.settingsOpen" />

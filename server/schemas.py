@@ -232,6 +232,23 @@ class StudentLogin(BaseModel):
     code: str = Field(default="", max_length=12)
 
 
+class AuthLogin(BaseModel):
+    """统一登录：账号既可以是学号，也可以是教师用户名，由服务端判定身份。"""
+
+    account: str = Field(min_length=1, max_length=32)
+    password: str = Field(min_length=1, max_length=72)
+    code: str = Field(default="", max_length=12)
+
+
+class AuthRegister(BaseModel):
+    """统一注册：填了邀请码按学生入班，留空则创建教师账号。"""
+
+    invite: str = Field(default="", max_length=12)
+    name: str = Field(default="", max_length=24)
+    account: str = Field(default="", max_length=32)
+    password: str = Field(default="", max_length=72)
+
+
 class StudentPasswordChange(BaseModel):
     student_id: str = Field(min_length=1, max_length=64)
     token: str = Field(default="", max_length=80)

@@ -91,6 +91,32 @@ export async function loadSettings() {
   Object.assign(state.settings, data)
 }
 
+// ---------------------------------------------------------------- 统一登录
+/** 统一登录成功后落地会话：一个浏览器同时只保留一种身份，并切到对应工作区。 */
+export function applyAuthSession(role, data) {
+  state.pendingJoinCode = ''
+  if (role === 'teacher') {
+    clearStudent()
+    applyTeacherSession(data)
+    state.view = 'teacher'
+    return 'teacher'
+  }
+  clearTeacherSession()
+  saveStudent({ ...data.student, token: data.token, class_name: data.klass?.name || '' })
+  state.student.klass = data.klass
+  state.student.tasks = data.tasks || []
+  state.student.loaded = true
+  state.view = 'class'
+  return 'student'
+}
+
+/** 退出登录：清掉身份并回到登录页。 */
+export function signOut() {
+  clearStudent()
+  clearTeacherSession()
+  state.view = 'auth'
+}
+
 // ---------------------------------------------------------------- 教师会话
 export function applyTeacherSession(data) {
   setToken(data.token)
@@ -164,7 +190,7 @@ export async function bootstrap() {
     const joinCode = params.get('join')
     if (joinCode) {
       state.pendingJoinCode = joinCode.trim().toUpperCase()
-      state.view = 'class'
+      state.view = 'auth'
     }
     if (state.teacher.token) loadTeacher()
     state.booted = true

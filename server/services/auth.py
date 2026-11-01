@@ -92,6 +92,9 @@ def register(username: str, password: str, name: str) -> dict:
     username = (username or "").strip()
     if not USERNAME_RE.match(username):
         raise ValueError("用户名需为 3–24 位字母、数字、下划线、点或短横线。")
+    if username.isdigit():
+        # 纯数字留给学号，统一登录才能靠输入判定身份
+        raise ValueError("用户名不能是纯数字（会和学号混淆），请至少包含一个字母。")
     _check_password(password)
     with _LOCK:
         if _find_by_username(username):

@@ -7,11 +7,12 @@ from .. import db, store
 from ..config import APP_NAME, APP_SUBTITLE, VERSION
 from ..config import settings as app_settings
 from ..observability import health_extra
-from . import chat, classroom, events, materials, ocr, progress, quiz, student, teacher
+from . import auth, chat, classroom, events, materials, ocr, progress, quiz, student, teacher
 from . import settings as settings_api
 
 api_router = APIRouter(prefix="/api")
 
+api_router.include_router(auth.router)
 api_router.include_router(chat.router)
 api_router.include_router(classroom.router)
 api_router.include_router(materials.router)
