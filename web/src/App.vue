@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import ChatView from './views/ChatView.vue'
 import ClassroomView from './views/ClassroomView.vue'
 import QuizView from './views/QuizView.vue'
@@ -12,6 +12,7 @@ import Icon from './components/Icon.vue'
 import SettingsDialog from './components/SettingsDialog.vue'
 import Toast from './components/Toast.vue'
 import { bootstrap, state, switchView } from './store'
+import { useSmoothScroll } from './composables/useSmoothScroll'
 
 const baseNav = [
   { id: 'chat', label: '对话', icon: 'chat' },
@@ -29,6 +30,21 @@ const nav = computed(() => {
 })
 
 onMounted(bootstrap)
+
+/* 惯性滚轮挂在当前视图的滚动容器上：视图换了容器也换了，所以要跟着重建。 */
+const mainRef = ref(null)
+const smoothScroll = useSmoothScroll(
+  () => mainRef.value?.querySelector('.content, .chat-scroll') || null,
+)
+
+watch(
+  () => [state.booted, state.view],
+  async () => {
+    await nextTick()
+    smoothScroll.mount()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -69,7 +85,7 @@ onMounted(bootstrap)
       </div>
     </aside>
 
-    <main class="main">
+    <main ref="mainRef" class="main">
       <ChatView v-if="state.view === 'chat'" />
       <ClassroomView v-else-if="state.view === 'classroom'" />
       <QuizView v-else-if="state.view === 'quiz'" />

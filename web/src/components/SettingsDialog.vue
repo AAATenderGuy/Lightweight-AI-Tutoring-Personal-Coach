@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { api } from '../api'
 import { loadSettings, notify, state } from '../store'
+import { prefs } from '../prefs'
 import Icon from './Icon.vue'
 
 const form = reactive({
@@ -148,6 +149,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
         <div class="hint-box">
           不填 Key 也能启动：应用会运行在<strong>离线演示模式</strong>，用本地规则生成示例回答、课堂和测验，方便先体验流程。
+        </div>
+
+        <div class="field">
+          <label>界面</label>
+          <label class="pref-row">
+            <input v-model="prefs.smoothScroll" type="checkbox" />
+            <span>惯性滚轮</span>
+          </label>
+          <span class="small muted">滚轮带一点缓动。窗口窄于 900px 或系统开启「减少动态效果」时自动关闭。</span>
         </div>
 
         <div v-if="testResult" class="test-result" :class="testResult.ok ? 'ok' : 'bad'">
