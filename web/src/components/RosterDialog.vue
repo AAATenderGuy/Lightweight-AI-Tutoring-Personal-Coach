@@ -1,8 +1,9 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { api } from '../api'
 import { notify } from '../store'
 import Icon from './Icon.vue'
+import TriCheckbox from './TriCheckbox.vue'
 
 const props = defineProps({
   klass: { type: Object, required: true },
@@ -17,7 +18,66 @@ const error = ref('')
 const result = ref(null)
 const copied = ref(false)
 
-const canSubmit = computed(() => Boolean(text.value.trim() || file.value))
+// ---- 名单预览：粘贴的文本先在本地解析成行，允许取消勾选个别行不导入
+const HEADER_WORDS = [
+  '学号', '学籍号', '考号', '账号', 'studentid', 'student_id', 'number', 'id',
+  '姓名', 'name', '密码', 'password',
+]
+
+function splitCells(line) {
+  if (line.includes('\t')) return line.split('\t')
+  if (line.includes(';')) return line.split(';')
+  return line.split(',')
+}
+
+const preview = computed(() => {
+  const lines = text.value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  if (!lines.length) return { header: '', rows: [] }
+  const firstCells = splitCells(lines[0]).map((cell) => cell.trim().toLowerCase())
+  const hasHeader = firstCells.some((cell) => HEADER_WORDS.includes(cell))
+  const body = hasHeader ? lines.slice(1) : lines
+  const rows = body.map((line, index) => {
+    const cells = splitCells(line).map((cell) => cell.trim())
+    return {
+      key: `row-${index}`,
+      number: cells[0] || '',
+      name: cells[1] || '',
+      password: cells[2] || '',
+      raw: line,
+    }
+  }).filter((row) => row.number || row.name)
+  return { header: hasHeader ? lines[0] : '', rows }
+})
+
+const picked = ref(new Set())
+watch(preview, (value) => {
+  picked.value = new Set(value.rows.map((row) => row.key))
+}, { immediate: true })
+
+const allPicked = computed(() => preview.value.rows.length > 0
+  && picked.value.size === preview.value.rows.length)
+const somePicked = computed(() => picked.value.size > 0 && !allPicked.value)
+
+function toggleAll(next) {
+  picked.value = next ? new Set(preview.value.rows.map((row) => row.key)) : new Set()
+}
+
+function toggleRow(key) {
+  const next = new Set(picked.value)
+  if (next.has(key)) next.delete(key)
+  else next.add(key)
+  picked.value = next
+}
+
+/** 全部勾选时原样提交，交给后端解析；筛过才按勾选行重组文本。 */
+function rosterText() {
+  const { header, rows } = preview.value
+  if (!rows.length || picked.value.size === rows.length) return text.value
+  const chosen = rows.filter((row) => picked.value.has(row.key))
+  return [header, ...chosen.map((row) => row.raw)].filter(Boolean).join('\n')
+}
+
+const canSubmit = computed(() => Boolean((text.value.trim() && picked.value.size) || file.value))
 
 function onFile(event) {
   file.value = event.target.files?.[0] || null
@@ -30,7 +90,7 @@ async function submit() {
   error.value = ''
   try {
     const form = new FormData()
-    form.append('text', text.value)
+    form.append('text', rosterText())
     form.append('default_password', defaultPassword.value.trim())
     if (file.value) form.append('file', file.value)
     const data = await api.teacher.classes.importRoster(props.klass.id, form)
@@ -124,6 +184,39 @@ function close() {
               maxlength="72"
               placeholder="留空则每个学生随机生成 6 位数字"
             />
+          </div>
+
+          <div v-if="preview.rows.length" class="roster-preview">
+            <div class="bulk-bar">
+              <TriCheckbox
+                :checked="allPicked"
+                :indeterminate="somePicked"
+                :label="picked.size ? `已选 ${picked.size}` : `全选 ${preview.rows.length} 人`"
+                @change="toggleAll"
+              />
+              <span class="spacer" />
+              <span class="small muted">取消勾选的行不会被导入</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="check-col"><span class="sr-only">选择</span></th>
+                  <th>学号</th>
+                  <th>姓名</th>
+                  <th>密码</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in preview.rows" :key="row.key" :class="{ 'is-off': !picked.has(row.key) }">
+                  <td class="check-col">
+                    <TriCheckbox :checked="picked.has(row.key)" @change="toggleRow(row.key)" />
+                  </td>
+                  <td>{{ row.number || '—' }}</td>
+                  <td>{{ row.name || '—' }}</td>
+                  <td><code>{{ row.password || '自动生成' }}</code></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           <div v-if="error" class="msg-error">{{ error }}</div>

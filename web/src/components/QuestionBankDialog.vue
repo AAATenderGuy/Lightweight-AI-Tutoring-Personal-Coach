@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { api } from '../api'
 import { notify } from '../store'
 import Icon from './Icon.vue'
+import TriCheckbox from './TriCheckbox.vue'
 
 const emit = defineEmits(['close', 'changed'])
 
@@ -37,6 +38,14 @@ const ai = reactive({ topic: '', count: 4, difficulty: 'medium' })
 
 const draftItems = computed(() => items.value.filter((item) => item.status === 'draft'))
 const checkedDrafts = ref(new Set())
+const allChecked = computed(() => draftItems.value.length > 0
+  && checkedDrafts.value.size === draftItems.value.length)
+const someChecked = computed(() => checkedDrafts.value.size > 0 && !allChecked.value)
+
+/** 父级三态：全选 / 半选 / 清空。 */
+function toggleAll(next) {
+  checkedDrafts.value = next ? new Set(draftItems.value.map((item) => item.id)) : new Set()
+}
 
 function typeLabel(type) {
   return type === 'single' ? '选择题' : '简答题'
@@ -357,9 +366,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
         <div v-if="errorText" class="msg-error" style="margin-top: 10px">{{ errorText }}</div>
 
-        <div v-if="filter.status === 'draft' && draftItems.length" class="row" style="margin-top: 10px; gap: 8px">
+        <div v-if="filter.status === 'draft' && draftItems.length" class="bulk-bar">
+          <TriCheckbox
+            :checked="allChecked"
+            :indeterminate="someChecked"
+            :label="checkedDrafts.size ? `已选 ${checkedDrafts.size}` : `全选 ${draftItems.length} 项`"
+            @change="toggleAll"
+          />
+          <span class="spacer" />
           <button class="btn btn-sm btn-primary" type="button" :disabled="!checkedDrafts.size" @click="approveChecked">
-            审核通过选中项（{{ checkedDrafts.size }}）
+            审核通过选中项
           </button>
         </div>
 
@@ -368,13 +384,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         </div>
         <div v-else class="mini-list" style="margin-top: 12px">
           <div v-for="item in items" :key="item.id" class="mini-row" style="cursor: default">
-            <label v-if="filter.status === 'draft'" class="check-line" style="margin: 0 8px 0 0">
-              <input
-                type="checkbox"
-                :checked="checkedDrafts.has(item.id)"
-                @change="toggleDraft(item.id)"
-              />
-            </label>
+            <TriCheckbox
+              v-if="filter.status === 'draft'"
+              class="mini-check"
+              :checked="checkedDrafts.has(item.id)"
+              @change="toggleDraft(item.id)"
+            />
             <div class="mini-main">
               <div class="todo-title">{{ item.question }}</div>
               <div class="small muted" style="margin-top: 4px">
