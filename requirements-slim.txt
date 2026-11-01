@@ -1,0 +1,18 @@
+# 低配机器（1–2 GB 内存）用的依赖清单：不含 OCR 与向量检索运行时。
+#
+# 与 requirements.txt 的差别：
+#   - 去掉 onnxruntime / rapidocr / pillow 的 OCR 部分 → 拍题识别返回 503
+#   - 去掉 fastembed / numpy                            → 检索退回 BM25
+#   - 保留 pillow：server/services/ocr.py 顶层就 import PIL，缺了服务起不来
+#
+# 装这个清单 + EDU_RETRIEVAL_MODE=bm25，常驻内存约 250 MB，1 GiB 机器能跑。
+fastapi>=0.110,<1
+uvicorn>=0.27,<1
+httpx>=0.27,<1
+python-multipart>=0.0.9
+pydantic>=2.6,<3
+# 文档解析：PDF / Word / PPT 作业与资料
+pypdf>=4,<6
+python-docx>=1.1,<2
+python-pptx>=0.6.23,<2
+pillow>=10,<14

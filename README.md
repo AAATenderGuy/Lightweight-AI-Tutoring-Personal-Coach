@@ -196,10 +196,21 @@ bash deploy.sh --domain edu.example.com --email you@example.com   # 需要 HTTPS
 装 Python 3.10+、`pip install -r requirements.txt`、把 service 文件放进
 `/etc/systemd/system/`、Nginx 反代到 `127.0.0.1:8000` 即可。注意 SSE 要在反代里关缓冲。
 
-部署要点（两种方式都适用）：
+**C. 1–2 GB 内存的低配机器**
 
-- **机型**：2 核 4 GB 起步。拍题 OCR（onnxruntime）与向量检索（fastembed）同时加载约 700 MB，
-  2 GB 机器请加 `--mode bm25` 并删掉 `requirements.txt` 里的 OCR/向量依赖。
+```bash
+bash deploy-slim.sh          # 加 swap → venv → 装 requirements-slim.txt → systemd 常驻
+```
+
+不起 Docker、不建镜像，常驻内存约 250 MB。代价是**拍题 OCR 返回 503、检索退回 BM25**
+（`requirements-slim.txt` 不含 onnxruntime / rapidocr / fastembed），其余功能不受影响。
+配套命令：`status` / `logs` / `restart` / `down` / `uninstall`，`--print-unit` 可以只看
+systemd 单元文件不安装。
+
+部署要点（三种方式都适用）：
+
+- **机型**：完整功能 2 核 4 GB 起步。拍题 OCR（onnxruntime）与向量检索（fastembed）同时加载约 700 MB；
+  只有 1–2 GB 内存就用 C 方案。
 - **不要开多 worker**：SSE 事件总线、在线名单、限流都在进程内存里，多进程会串台。
 - **Key 只走环境变量 / `.env`**：容器不读宿主机 `data/settings.json`。
 - **HTTPS**：大陆地域绑域名要先 ICP 备案；只想快速演示可用 `IP:8000` 直连。
