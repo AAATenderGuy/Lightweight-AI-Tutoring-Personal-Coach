@@ -158,7 +158,13 @@ install_deps() {
   fi
   [ -x "$PY" ] || python3 -m venv "$APP_DIR/.venv"
   "$PY" -m pip install -q --upgrade pip
-  "$PY" -m pip install -q -r "$APP_DIR/requirements-slim.txt"
+
+  # 大陆机器直连 pypi.org 经常超时，失败一次就换清华镜像
+  local mirror="${EDU_PIP_INDEX:-https://pypi.tuna.tsinghua.edu.cn/simple}"
+  if ! "$PY" -m pip install -q -r "$APP_DIR/requirements-slim.txt"; then
+    warn "默认源失败，改用镜像重试：$mirror"
+    "$PY" -m pip install -q -r "$APP_DIR/requirements-slim.txt" -i "$mirror"
+  fi
   info "依赖装好了：$("$PY" -c 'import fastapi; print("fastapi", fastapi.__version__)')"
 }
 
