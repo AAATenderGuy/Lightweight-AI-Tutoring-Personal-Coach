@@ -121,6 +121,41 @@ if [ "$(id -u)" -ne 0 ]; then
   SUDO="sudo"
 fi
 
+# 阿里云/腾讯云的镜像有的是 Ubuntu（apt），有的是 AliyunLinux/CentOS（dnf/yum），
+# 这里统一包管理器，后面所有安装都走 pkg_install。
+PKG=""
+detect_pkg() {
+  if command -v apt-get >/dev/null 2>&1; then PKG="apt"
+  elif command -v dnf >/dev/null 2>&1; then PKG="dnf"
+  elif command -v yum >/dev/null 2>&1; then PKG="yum"
+  else die "既没有 apt 也没有 dnf/yum，请手动安装 Python 3.10+ 后重试。"
+  fi
+  info "包管理器：$PKG"
+}
+
+pkg_install() {
+  case "$PKG" in
+    apt)
+      $SUDO apt-get update -qq >/dev/null 2>&1 || true
+      $SUDO apt-get install -y -qq "$@" ;;
+    dnf) $SUDO dnf install -y -q "$@" ;;
+    yum) $SUDO yum install -y -q "$@" ;;
+  esac
+}
+
+PY_BIN=""
+pick_python() {
+  local cand
+  for cand in python3.13 python3.12 python3.11 python3.10 python3; do
+    command -v "$cand" >/dev/null 2>&1 || continue
+    if "$cand" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+      PY_BIN="$cand"
+      return 0
+    fi
+  done
+  return 1
+}
+
 ensure_swap() {
   local mem_mb
   mem_mb="$(awk '/MemTotal/{printf "%d", $2/1024}' /proc/meminfo)"
@@ -139,15 +174,19 @@ ensure_swap() {
 }
 
 ensure_python() {
-  step "检查 Python"
-  if ! command -v python3 >/dev/null 2>&1; then
-    info "安装 python3 / venv"
-    $SUDO apt-get update -qq
-    $SUDO apt-get install -y -qq python3 python3-venv python3-pip curl
+  step "检查 Python（需要 3.10+）"
+  detect_pkg
+
+  if ! pick_python; then
+    info "系统自带的 Python 太旧，尝试安装新版"
+    case "$PKG" in
+      apt) pkg_install python3 python3-venv python3-pip python3.11 python3.11-venv || true ;;
+      dnf|yum) pkg_install python3 python3-pip python3.11 python3.12 || true ;;
+    esac
+    pick_python || die "找不到 Python 3.10+。这台机器的源里可能没有，考虑换用 Docker 方案或升级系统。"
   fi
-  python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' \
-    || die "需要 Python 3.10+，当前是 $(python3 -V 2>&1)"
-  info "$(python3 -V 2>&1)"
+
+  info "$PY_BIN $($PY_BIN -V 2>&1)"
 }
 
 install_deps() {
@@ -156,7 +195,22 @@ install_deps() {
     warn "已有 .venv 但不完整，重建。"
     rm -rf "$APP_DIR/.venv"
   fi
-  [ -x "$PY" ] || python3 -m venv "$APP_DIR/.venv"
+
+  if [ ! -x "$PY" ]; then
+    # RHEL 系（阿里云 Linux / CentOS）经常缺 ensurepip，venv 会失败，这里留退路
+    if ! "$PY_BIN" -m venv "$APP_DIR/.venv" 2>/dev/null; then
+      warn "python -m venv 失败，改用 virtualenv"
+      pkg_install python3-virtualenv >/dev/null 2>&1 || pkg_install python-virtualenv >/dev/null 2>&1 || true
+      if command -v virtualenv >/dev/null 2>&1; then
+        virtualenv -q -p "$PY_BIN" "$APP_DIR/.venv"
+      else
+        "$PY_BIN" -m pip install -q --user virtualenv
+        "$PY_BIN" -m virtualenv -q -p "$PY_BIN" "$APP_DIR/.venv"
+      fi
+    fi
+  fi
+  [ -x "$PY" ] || die "虚拟环境创建失败，请手动装 python3-pip / python3-devel 后重试。"
+
   "$PY" -m pip install -q --upgrade pip
 
   # 大陆机器直连 pypi.org 经常超时，失败一次就换清华镜像
@@ -166,6 +220,16 @@ install_deps() {
     "$PY" -m pip install -q -r "$APP_DIR/requirements-slim.txt" -i "$mirror"
   fi
   info "依赖装好了：$("$PY" -c 'import fastapi; print("fastapi", fastapi.__version__)')"
+}
+
+check_selinux() {
+  command -v getenforce >/dev/null 2>&1 || return 0
+  [ "$(getenforce 2>/dev/null || echo Disabled)" = "Enforcing" ] || return 0
+  case "$APP_DIR" in
+    /opt/*|/srv/*|/usr/local/*) return 0 ;;
+  esac
+  warn "SELinux=Enforcing，而项目在 $APP_DIR，systemd 起服务时可能被拒绝。"
+  warn "建议把代码放到 /opt/edu 再跑；急用可以临时 setenforce 0。"
 }
 
 install_service() {
@@ -253,7 +317,9 @@ case "$CMD" in
   up)
     ensure_swap
     ensure_python
+    command -v curl >/dev/null 2>&1 || pkg_install curl >/dev/null 2>&1 || true
     install_deps
+    check_selinux
     install_service
     if wait_health; then
       harden_demo || true
